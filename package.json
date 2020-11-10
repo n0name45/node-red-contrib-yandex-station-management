@@ -2,7 +2,7 @@
   "name": "node-red-contrib-alice-local-management",
   "version": "0.0.1",
   "description": "Local management of YandexStation using API on websockets",
-  "main": "alice-local-management.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,7 +13,7 @@
   "author": "n0name",
   "license": "ISC",
   "homepage": "https://bitbucket.org/dimanoname/alicelocalmanagement#readme",
-      "node-red" : {
+   "node-red": {
         "nodes": {
             "alice-local-management": "alice-local-management.js"
         }

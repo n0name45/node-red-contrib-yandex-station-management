@@ -1,5 +1,5 @@
 module.exports = function(RED) {
-    function AliceLocalSend(config) {
+    function AliceLocalSendNode(config) {
         RED.nodes.createNode(this,config);
         var node = this;
         node.on('input', function(msg) {
@@ -7,5 +7,5 @@ module.exports = function(RED) {
             node.send(msg);
         });
     }
-    RED.nodes.registerType("alice-local-send",AliceLocalSendNode);
+    RED.nodes.registerType("alice-local-management",AliceLocalSendNode);
 }
