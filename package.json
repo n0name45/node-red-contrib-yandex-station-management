@@ -16,7 +16,8 @@
    "node-red": {
         "nodes": {
             "alice-local-management": "alice-local-management.js",
-            "alice-local-bridge": "bridge.js"
+            "alice-local-bridge": "bridge.js",
+            "yandex-login": "yandex-login.js"
 
         }
     },
@@ -24,6 +25,7 @@
         "request": "^2.88.2",
         "request-promise": "^4.2.5",
         "request-promise-native": "^1.0.8",
-        "node-dns-sd": "^0.4.2"
+        "node-dns-sd": "^0.4.2",
+        "ws": "^7.4.0"
     }
 }

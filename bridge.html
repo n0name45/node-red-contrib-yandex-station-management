@@ -1,25 +1,76 @@
 <script type="text/javascript">
+    
     RED.nodes.registerType('alice-local-bridge',{
         category: 'aliceLocal',
         color: '#a6bbcf',
         defaults: {
-            token: {value:""}
+            name:{value: ""},
+            otoken: {
+                type: "yandex-login",
+                required: true
+            },
+            device_id: {},
+            output: {}     
         },
         inputs:1,
         outputs:1,
         icon: "file.png",
         label: function() {
             return this.name||"alice-local-bridge";
-        }
+        },
+        oneditprepare: updateDevices
     });
+    function updateDevices() {
+                let config = RED.nodes.node($('#node-input-otoken').val());
+                let token = config.token;
+                let selector = $('#node-input-device_id')
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                    //alert(config.id + " " + JSON.stringify(data));
+                        data.devices.forEach(device => {
+                        selector.append(`<option value="${device.id}"> 
+                                       ${device.name}(${device.id})
+                                  </option>`)
+                    });
+                });
+                
+                
+               // await rp(options)
+               //     .then(function(response)
+               //     {
+                //        let data = JSON.parse(response);
+                //        alert(data.devices.length);
+                //    });
+                //this.config = RED.nodes.getNode(config.otoken);
+                //let token = this.config.credentials.otoken;
+                //alert(devices);
+            
+            }  
 </script>
 
 <script type="text/html" data-template-name="alice-local-bridge">
     <div class="form-row">
-        <label for="node-input-token"><i class="fa fa-tag"></i>Yandex Token</label>
-        <input type="text" id="node-input-token" placeholder="Token">
+        <label for="node-input-name"><i class="fa fa-bookmark"></i>Name</label>
+        <input type="text" id="node-input-name" placeholder="">
     </div>
-
+    <div class="form-row">
+        <label for="node-input-otoken"><i class="fa fa-globe"></i>Login</label>
+        <input type="text" id="node-input-otoken" placeholder="OToken">
+    </div>
+    <div class="form-row">
+        <label for="node-input-device_id"><i class="fa fa-database">Device</i></label>
+        <select id="node-input-device_id" data-single="true"></select>
+        <div style="text-align: end; margin-right: 32px; display: inline"><button onclick="updateDevices()" class="ui-button primary">Refresh</button></div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-ouput"><i class="fa fa-database">Output</i></label>
+        <select id="node-input-output" data-single="true">
+            <option value="status">Status</option>
+            <option value="track">Track</option>
+            <option value="artist" >Artist</option>
+            <option value="player_state">Player State</option>
+            <option value="debug">Debug</option>
+        </select>
+    </div>
 </script>
 
 <script type="text/html" data-help-name="alice-local-bridge">
