@@ -10,6 +10,9 @@
                 required: true
             },
             device_id: {},
+            debug: {
+                value: false
+            },
             output: {}     
         },
         inputs:1,
@@ -22,8 +25,9 @@
     });
     function updateDevices() {
                 let config = RED.nodes.node($('#node-input-otoken').val());
-                let token = config.token;
+                //let token = config.token;
                 let selector = $('#node-input-device_id')
+                selector.empty();
                 $.getJSON('yandexdevices_'+config.id,function(data) {
                     //alert(config.id + " " + JSON.stringify(data));
                         data.devices.forEach(device => {
@@ -33,16 +37,6 @@
                     });
                 });
                 
-                
-               // await rp(options)
-               //     .then(function(response)
-               //     {
-                //        let data = JSON.parse(response);
-                //        alert(data.devices.length);
-                //    });
-                //this.config = RED.nodes.getNode(config.otoken);
-                //let token = this.config.credentials.otoken;
-                //alert(devices);
             
             }  
 </script>
@@ -70,6 +64,10 @@
             <option value="player_state">Player State</option>
             <option value="debug">Debug</option>
         </select>
+    </div>
+    <div class="form-row">
+        <label for='node-input-debug'><i class='fa fa-share-square'>Debug</i></label>
+        <input type="checkbox" id="node-input-debug" checked="checked" style="display: inline-block; width: auto; vertical-align: top;"> 
     </div>
 </script>
 

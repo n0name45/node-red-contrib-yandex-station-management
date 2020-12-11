@@ -1,185 +1,170 @@
 var rp = require('request-promise');
-var mDnsSd = require('node-dns-sd');
+
 var WebSocket = require("ws");
-const { initParams } = require('request-promise-native');
 
 module.exports = function(RED) {
     function AliceLocalBridgeNode(config) {
         RED.nodes.createNode(this,config);
         let node = this;
-        this.config = RED.nodes.getNode(config.otoken);
-        let token = this.config.token;
-        let deviceId = config.device_id;
-        let outputFormat = config.output;
-        let deviceList= [];
-        let discoveredDevices = [];
-        let lastState = {};
-        let msg = {};
-        let debugFlag = true;
-    
-       node.config.on(`deviceReady${deviceId}`, function(data) {
-           let device = data;
-           node.log(`recieved event devicesListReady! ${JSON.stringify(device)}`)
-            getLocalToken(device)
-            .then(() => {
-                makeConn(device)
-            })
-        })
-       //node.config.sender(node.id);
+        node.sendMessage = sendMessage;
+        node.waitForListening = false;
+        node.lastState = {};
+        node.controller = RED.nodes.getNode(config.otoken);
+        node.token =  node.controller.credentials.otoken;
+        node.deviceId = config.device_id;
+        node.debugFlag = config.debug;
+        node.station =  node.controller.getDevice(node.deviceId);
+        node.connection = true;
+        node.status({});
+
+        
+        node.controller.on(`deviceReady${node.deviceId}`, onDeviceReady)
+        
+        node.on('stopListening', onStopListening);
+        node.on('close', onNodeClose)
+
+        if (node.station != '1' && node.station != '2') {
+            debugMessage('connect to ' + node.station.address);
+            node.device = node.station;
+            connect(node.device);
+        }
+
+
+        function onDeviceReady(data) {
+            node.device = data;
+            //station = data;
+            debugMessage(`recieved event devicesListReady!`)
+            connect(node.device)
+        };
+
+        function onStopListening() {
+            sendMessage('stopListening');
+            node.waitForListening = false;
+        }
+
+        function onNodeClose() {
+            node.connection = false;
+            debugMessage('closing');
+            if (typeof(node.ws) != undefined ) {node.ws.terminate()}
+            node.status({fill:"red",shape:"dot",text:`disconnected`});
+            clearTimeout(node.watchDog);
+            node.controller.unregister(node.id, node.deviceId);
+            node.controller.removeListener(`deviceReady${node.deviceId}`, onDeviceReady)
+        }
         function debugMessage(text){
-            if (debugFlag) {
-                let msgDebug = {};
+            if (node.debugFlag) {
+               // let msgDebug = {};
                 node.log(text);
                 //msgDebug.debug = text;
                 //node.send(msgDebug);
             }
         }
 
-        async function getDeviceProperties(id) {
-            let device;
-            let temp;
-            await getDeviceList()
-            .then(list => {
-                node.status({fill:"yellow",shape:"dot",text:`Getting device properties`});
-                device = list.find(el => el.id == id);
+        function messageConstructor(messageType, message){
+            switch(messageType){
+                case 'command':
+                    if (['play', 'stop', 'next', 'prev', 'ping'].includes(message.payload)){
+                        return [{ "command": message.payload}];
+                    } else {
+                        debugMessage('unknown command. Send commands: play, stop, next, prev in payload of message ')
+                        return [{"command": "ping"}];
+                    }
+                    break;
+                case 'voice': 
+                    debugMessage(`Message Voice command: ${message}`);
+                    return [{
+                        "command" : "sendText",
+                        "text" : message.payload
+                    }]
+                case 'tts':
+                    debugMessage(`Message TTS: ${message}`);
+                    if (message.stopListening == true) {node.waitForListening = true}
+                    if (message.volume == undefined){
+                        return [{
+                            "command" : "sendText",
+                            "text" : `Повтори за мной '${message.payload}'`
+                        }]
 
-                if (typeof(device) != 'object') {
-                    node.status({fill:"red",shape:"dot",text:`No devices registered`});
-                } else {
-                    //debugMessage(`device id: ${device.id}`);
-                    getLocalToken(device)
-                    .then(() => {
-                        discoverDevice(device)
-                        .then(() => {
-                            makeConn(device);
-                        //debugMessage(device);
-                        })
-                    });
+                    } else {
+                        return [{
+                            "command" : "setVolume",
+                            "volume" : parseFloat(message.volume)
+                        },
+                            {
+                            "command" : "sendText",
+                            "text" : `Повтори за мной '${message.payload}'`
+                        }]
+                    }
+                    
+                    break;
+                case 'homekit':
+                    debugMessage('HAP: ' + JSON.stringify(message.hap.context) + ' PL: ' + JSON.stringify(message.payload) ); 
+                    if (message.hap.context != undefined) {
+                        switch(JSON.stringify(message.payload)){
+                            case '{"TargetMediaState":1}': 
+                                return messageConstructor('command', {payload: 'stop'})
+                                break;
+                            case '{"TargetMediaState":0}':
+                                if (node.lastState.playerState.title != ""){
+                                    return messageConstructor('command', {'payload': 'play'})
+                                } else if (message.noTrackPhrase) {
+                                    return messageConstructor('voice', {'payload': message.noTrackPhrase})
+                                } else {
+                                    return messageConstructor('command', {'payload': 'ping'})
+                                }
 
-                }
-            })
-            .catch(function (err) {
-                let errMsg = {};
-                node.log(err);
-                errMsg.payload = err;
-                node.send(errMsg);
-                node.status({fill:"red",shape:"dot",text:`Auntethication error`})
-            });
-        }
-        
-        async function getDeviceList(){
-            let connectOptions = { 
-                method: 'GET',
-                url: 'https://quasar.yandex.net/glagol/device_list',
-                headers: 
-                {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Oauth ' + token 
-                } 
-            };
-            await rp(connectOptions)
-            .then(function(response) {
-                deviceList = JSON.parse(response).devices;
-                debugMessage(JSON.parse(response).devices)
-            })
-            .catch(function (err) {
-                let errMsg = {};
-                node.log(err);
-                errMsg.payload = err;
-                node.send(errMsg);
-            });
-            return deviceList;
-        }
-
-        async function getDevices()
-        {
-            let data;
-            let temp;
-            let stageCompleted = 0;
-            let options = 
-                { 
-                    method: 'GET',
-                    url: 'https://quasar.yandex.net/glagol/device_list',
-                    headers: 
-                    { 
-                        Connection: 'keep-alive',
-                        Host: 'quasar.yandex.net',
-                        'Content-Type': 'application/json',
-                        Authorization: 'Oauth ' + token 
-                    } 
-                };
-        
-      
-            await rp(options)
-            .then(function(response)
-            {
-                data = JSON.parse(response);
-                deviceList = data.devices;
-                
-                debugMessage(`Recieved device list of ${deviceList.length} devices`);
-                stageCompleted = 1;
-                node.status({fill:"yellow",shape:"dot",text:`Recieving devices...`});
-                if (deviceList.length == 0) {
-                    debugMessage(`Repeat cause ${deviceList.length}`);
-                    setTimeout(getDevices, 5000);
-                } 
-            })
-            .catch(function (err) {
-                if (deviceList.length == 0) {
-                    debugMessage(`Repeat cause ${deviceList.length}`);
-                    setTimeout(getDevices, 5000);
-                } 
-                let errMsg = {};
-                node.log(err);
-                errMsg.payload = err;
-                node.send(errMsg);
-            });
-            //setTimeout(debugMessage, 50000, "Reapet getting list of devices...");
-        
-        if (stageCompleted == 1) {
-            await discoverDevices()
-            .then(result => {
-                discoveredDevices = result;
-                if (discoveredDevices.length == 0) {
-                    debugMessage(`Repeat discovering cause ${discoveredDevices.length}`);
-                    setTimeout(discoverDevices, 5000);
-                } else {
-                    stageCompleted = 2;
-                }
-            })
-            .catch(function (err) {
-                let errMsg = {};
-                node.log(err);
-                errMsg.payload = err;
-                node.send(errMsg);
-                setTimeout(discoverDevices, 5000);
-            }); 
-        };
-        if (stageCompleted == 2) {
-            for (const device of deviceList) {
-                await getLocalToken(device.id)
-                .then(result => {
-                    device.token = result
-                    debugMessage(`Recieved local auth token for ${device.id}`);
-                    discoveredDevices.forEach(element => {
-                        let srvEls = element.packet.answers.find(el => el.type == "SRV");
-                        let txtEls = element.packet.answers.find(el => el.type == "TXT");
-                        if (txtEls.rdata.deviceId == device.id) {
-                            device.address =  element.address;
-                            device.port = element.service.port;
-                            device.host = srvEls.rdata.target;
-                        }    
-                    });
-                })
-                .catch(function (err) {
-                    let errMsg = {};
-                    node.log(err);
-                    errMsg.payload = err;
-                    node.send(errMsg);
-                }); 
+                                break;
+                            default:
+                                debugMessage('unknown command')
+                                return messageConstructor('command', {'payload': 'ping'})
+                        }
+                        
+                    } else {
+                        return messageConstructor('command', {'payload': 'ping'})
+                    }
+                case 'raw': 
+                    return [message.payload];
+                case 'stopListening': 
+                    return [{
+                        "command": "serverAction",
+                        "serverActionEventPayload": {
+                            "type": "server_action",
+                            "name": "on_suggest"
+                        }
+                    }]
             }
-        } 
-        return deviceList;    
+
+        }
+        function sendMessage(messageType, message) {
+            debugMessage(`WS.STATE: ${node.ws.readyState} recive ${messageType} with ${JSON.stringify(message)}`);
+            if (node.ws.readyState == 1){
+
+                    for (let m of messageConstructor(messageType, message)) {
+                        let data = {
+                            "conversationToken": node.device.token,
+                            "id": node.device.id,
+                            "payload": m,
+                            "sentTime": Date.now()
+                            }
+                            node.ws.send(JSON.stringify(data));
+                        debugMessage('Send message: ' + JSON.stringify(data));
+                    }
+                return 'ok'
+            } else {
+                return 'Device offline'
+            }
+        }
+
+        
+        function connect(device) {
+            debugMessage('connecting...');
+            getLocalToken(device)
+            .then(() => {
+                debugMessage('recieve conversation token...');
+                let register =  node.controller.register(node.id, node.deviceId);
+                debugMessage(`registered station with code ${register}`)
+                if ( register == '0') {makeConn(device)}    
+            })
         }
         
         async function getLocalToken(device) {
@@ -190,7 +175,7 @@ module.exports = function(RED) {
                 qs: { device_id: device.id },
                 headers: 
                     { 
-                        'Authorization': 'Oauth ' + token,
+                        'Authorization': 'Oauth ' + node.token,
                         'Content-Type': 'application/json' 
                     } 
                 };
@@ -210,151 +195,101 @@ module.exports = function(RED) {
          //   return data.token    
         };
 
-        async function discoverDevices() {
-            let discoverResult;
-            node.status({fill:"yellow",shape:"dot",text:`Discovering devices...`});
-            await mDnsSd.discover({
-                name: '_yandexio._tcp.local'
-            }).then((result) => {
-                discoverResult = result;
-                debugMessage(`Found ${discoverResult.length} devices`);
-                
-            }).catch(function (err) {
-                let errMsg = {};
-                node.log(err);
-                errMsg.payload = err;
-                node.send(errMsg);
-            });
-            return discoverResult;
-        }
-        async function discoverDevice(device){
-            let stop = false;
-            do {
-                await discoverDevices()
-                .then(discresult => {
-                    discresult.forEach(element => {
-                        let srvEls = element.packet.answers.find(el => el.type == "SRV");
-                        let txtEls = element.packet.answers.find(el => el.type == "TXT");
-                        if (txtEls.rdata.deviceId == device.id) {
-                            device.address =  element.address;
-                            device.port = element.service.port;
-                            device.host = srvEls.rdata.target;
-                        }    
-                    })
-                    if (device.host == undefined || device.port == undefined) {
-                        debugMessage('Devices not found');
-                        node.status({fill:"red",shape:"dot",text:`Device not found`});
-                        //setTimeout(discoverDevices, 5000);
-
-                    } else {
-                        node.status({fill:"yellow",shape:"dot",text:`Found device on ${device.address}`});
-                        stop = true;
-                    }
-                })
-                .catch(function (err) {
-                    let errMsg = {};
-                    node.log(err);
-                    errMsg.payload = err;
-                    node.send(errMsg);
-                    stop = true;
-                    setTimeout(getDeviceProperties, 5000, deviceId);
-                });
-            } while (!stop);
+        function statusUpdate(ws, options) {
+            switch(ws){
+                case 0: 
+                    node.status({fill:"yellow",shape:"dot",text:`connecting ${options}`});
+                    break;
+                case 1: 
+                    node.status({fill:"green",shape:"dot",text:`connected`});
+                    break;    
+                case 2: 
+                    node.status({fill:"red",shape:"dot",text:`disconnecting`});
+                    break;    
+                case 3: 
+                    node.status({fill:"red",shape:"dot",text:`disconnected, code ${options}`});
+                    break;    
+            }
         }
         async function makeConn(device) {
+            //let node = this
             let options = {
                 key: device.glagol.security.server_private_key,
                 cert: device.glagol.security.server_certificate,
                 rejectUnauthorized: false
             };
-            let msg = {};
-            let payload = {
-                "conversationToken": device.token,
-                "id": device.id,
-                 "payload": {
-                    "command": "ping"
-                },
-                "sentTime": 1
-                };  
+
 
             debugMessage(`Connecting to wss://${device.host}:${device.port}`);
-
-            let ws = new WebSocket(`wss://${device.host}:${device.port}`, options);
-    
-            node.status({fill:"yellow",shape:"dot",text:`State ${ws.readyState}`});
-            ws.on('open', async function open() {
-                debugMessage(`Connected to ${device.host}`);
-                node.status({fill:"green",shape:"dot",text:`State ${ws.readyState}`});
-                ws.send(JSON.stringify(payload));
-                ws.on('message', function incoming(data) {
-                    lastState = JSON.parse(data).state; 
-                    msg.payload = lastState;
-                    node.send(msg);
-                });
-        
-            });
-            ws.on('close', function close(data){
-                node.status({fill:"red",shape:"dot",text:"disconnected"});
-            })            
-            ws.on('pong', function pong(data){
-                node.status({fill:"green",shape:"dot",text:"pong"});
-                msg.payload = 'pong';
-                node.send(msg);
-            })
-            node.on('input', function(msgInput) {
-                if (msgInput.payload == 'ping') {
-                    ws.ping();
-                } 
-                if (msgInput.payload == 'stop'){
-                    ws.close();
-                }
-                if (msgInput.payload == 'state'){
-                    msg.payload = lastState;
-                    debugMessage(JSON.stringify(lastState));
-                    //node.send(msg);
-                }
-                if (msgInput.payload == 'command'){
-                    if (msgInput != undefined) {
-                        payload = {
-                            "conversationToken": device.token,
-                            "id": device.id,
-                            "payload": msgInput.command,
-                            "sentTime": 1
-                            };  
+            node.ws = new WebSocket(`wss://${device.host}:${device.port}`, options);
+       
+            statusUpdate(node.ws, device.address);
+            //node.status({fill:"yellow",shape:"dot",text:`State ${ws.readyState}`});
             
-                        ws.send(JSON.stringify(payload));
-                        debugMessage(`Sended command ${JSON.stringify(payload)}`)
-                    };
-                };
+            node.ws.on('open', function open(data) { 
+                debugMessage(`Connected to ${device.host}, data: ${data}`);
+                statusUpdate(node.ws);
+                //node.status({fill:"green",shape:"dot",text:`State ${ws.readyState}`});
+                sendMessage('command', {payload: 'ping'});
+                node.watchDog = setTimeout(() => node.ws.terminate(), 10000);
 
-                node.status({fill:"red",shape:"dot",text:`State: ${msgInput.payload}`});
+    
             });
+            node.ws.on('message', function incoming(data) {
+                //debugMessage(data);
+                node.lastState = JSON.parse(data).state; 
+                node.emit('message', node.lastState);
+                node.send({"payload": node.lastState});
+                if (node.lastState.aliceState) {node.status({fill:"green",shape:"dot",text:`${node.lastState.aliceState}`});}
+                if (node.lastState.aliceState == 'LISTENING' && node.waitForListening == true) {node.emit('stopListening')}
+                clearTimeout(node.watchDog);
+                node.watchDog = setTimeout(() => {
+                    debugMessage(node.watchDog);
+                    node.ws.terminate()}, 10000);
+            });            
+
+            node.ws.on('close', function close(code, reason){
+                statusUpdate(node.ws, code)
+                //node.status({fill:"red",shape:"dot",text:`disconnected ${code}`});
+                //debugMessage(`close: code = ${code}, type: ${typeof(code)}, reason: ${reason}`);
+                if (node.connection) {
+                    switch(code) {
+                        case 4000:  //invalid token
+                            debugMessage(`getting new token...`);
+                            connect(device);
+                            break;
+                        case 1000:  
+                            connect(device);
+                            break;   
+                        case 1006:
+                            debugMessage(`Lost server, reconnect in 10 seconds...${code} + ${reason}` );
+                            setTimeout(connect, 10000, device);
+                            break;
+                        default:
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 10 seconds.` );
+                            setTimeout(connect, 10000, device);
+                            break;
+                    }
+                }
+                 
+                 clearTimeout(node.watchDog);
+            })            
+            node.ws.on('pong', function pong(data){
+                //node.status({fill:"green",shape:"dot",text:"pong"});
+                debugMessage(`pong: ${data}`);
+            })
+            node.ws.on('ping', function ping(data){
+                node.ws.pong(data);
+
+            })
+            node.ws.on('error', function error(data){
+                debugMessage(`error: ${data}`);
+            });
+
+            
+
         }
-        //getDeviceProperties(deviceId);
-        node.on('input', function(msgInput) {
-            node.status({fill:"yellow",shape:"dot",text:`State: ${msgInput.payload}`});
-            let device;
-            if (msgInput.payload == 'devices'){
-                getDevices().then(result => {
-                    let msg = {};
-                    msg.payload = result;
-                    node.send(msg);
-                });
-            };
-            if (msgInput.payload == 'device') {
-                getDeviceProperties(deviceId).then(result => {
-                    device = result;
-                    let msg = {};
-                    msg.stage = "ready";
-                    msg.payload = device;
-                    node.send(msg);
-                })
-            }
-            if (msgInput.payload == 'connect') {
-                node.status({fill:"yellow",shape:"dot",text:`State: ${msgInput.payload}`});
-                makeConn(device);
-            }
-         });
+
 
         
     }

@@ -1,0 +1,91 @@
+<script type="text/javascript">
+    
+    RED.nodes.registerType('alice-local-get',{
+        category: 'Yandex Station',
+        color: '#b89fcc',
+        defaults: {
+            name:{value: ""},
+            token: {
+                type: "yandex-login",
+                required: true
+            },
+            station_id: {
+                required: true
+            },
+            debugFlag: {
+                value: false
+            },
+            output: {
+                required: true
+            }     
+        },
+        inputs:1,
+        outputs:1,
+        icon: "station.png",
+        label: function() {
+            return this.name||this.station_id;
+        },
+        oneditprepare: updateDevices
+    });
+    function updateDevices() {
+                let config = RED.nodes.node($('#node-input-token').val());
+                let selector = $('#node-input-station_id');
+                selector.empty();
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                        data.devices.forEach(device => {
+
+                            selector.append(`<option value="${device.id}"> 
+                                       ${device.name}(${device.id})
+                                  </option>`)
+                    });
+                });
+                
+            }  
+</script>
+
+<script type="text/html" data-template-name="alice-local-get">
+    <style>
+        .label-long {min-width: 150px;width: 20%;}
+        .online {display: inline-block; width: auto; vertical-align: middle;}
+    </style> 
+
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-bookmark"></i>Name</label>
+        <input type="text" id="node-input-name" placeholder="">
+    </div>
+    <div class="form-row">
+        <label for="node-input-token"><i class="fa fa-globe"></i>Login</label>
+        <input type="text" id="node-input-token" placeholder="Token">
+    </div>
+    <div class="form-row">
+        <label for="node-input-station_id"><i class="fa fa-database">Station</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 40px;">
+                <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
+            </div>        
+            <div style="text-align: end; display: inline; float: right">
+                <button onclick="updateDevices()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-output"><i class="fa fa-arrow-circle-o-left">Output</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 0px;">
+                <select id="node-input-output" data-single="true" style="width: 100%">
+                    <option value="status">Full status Message</option>
+                    <option value="homekit">HomeKit formatted</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for='node-input-debugFlag'><i class='fa fa-share-square'>Debug</i></label>
+        <input type="checkbox" id="node-input-debugFlag" checked="checked" style="display: inline-block; width: auto; vertical-align: top;"> 
+    </div>
+</script>
+
+<script type="text/html" data-help-name="alice-local-get">
+    <p> Input node for Yandex Station local management</p>
+</script>

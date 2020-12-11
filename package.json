@@ -1,5 +1,5 @@
 {
-  "name": "node-red-contrib-alice-local-management",
+  "name": "node-red-contrib-yandex-station-management",
   "version": "0.0.1",
   "description": "Local management of YandexStation using API on websockets",
   "main": "index.js",
@@ -15,9 +15,10 @@
   "homepage": "https://bitbucket.org/dimanoname/alicelocalmanagement#readme",
    "node-red": {
         "nodes": {
-            "alice-local-management": "alice-local-management.js",
-            "alice-local-bridge": "bridge.js",
-            "yandex-login": "yandex-login.js"
+            "alice-local-in": "nodes/in.js",
+            "alice-local-get": "nodes/get.js",
+            "alice-local-out": "nodes/local-out.js",
+            "yandex-login": "nodes/yandex-login.js"
 
         }
     },

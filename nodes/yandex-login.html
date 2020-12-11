@@ -2,12 +2,10 @@
     RED.nodes.registerType('yandex-login',{
         category: 'config',
         credentials: {
-            otoken: {type:"text"}
+            token: {type:"text"}
         },
         defaults: {
             name: {value: null,
-                required: true},
-            token: {value: null,
                 required: true}
         },
         label: function(){ return this.name  || "YandexLogin" }
@@ -20,11 +18,7 @@
         <input type="text" id="node-config-input-name">
     </div>
     <div class="form-row">
-        <label for="node-config-input-otoken"><i class="fa fa-bookmark"></i> oAuthToken </label>
-        <input type="text" id="node-config-input-otoken">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-token"><i class="fa fa-bookmark"></i> Token </label>
+        <label for="node-config-input-token"><i class="fa fa-bookmark"></i> oAuthToken </label>
         <input type="text" id="node-config-input-token">
     </div>
     

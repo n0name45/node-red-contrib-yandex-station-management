@@ -1,0 +1,165 @@
+<script type="text/javascript">
+    
+    RED.nodes.registerType('alice-local-out',{
+        category: 'Yandex Station',
+        color: '#b89fcc',
+        defaults: {
+            name:{value: ""},
+            token: {
+                type: "yandex-login",
+                required: true
+            },
+            station_id: {
+                required: true
+            },
+            debugFlag: {
+                value: false
+            },
+            input: {
+                value: "command",
+                required: true
+            },
+            volume: {},
+            volumeFlag: {
+                value: false
+            },
+            stopListening: {
+                value: true
+            },
+            pauseMusic: {
+                value: false
+            },
+            noTrack: {     
+            }
+        },
+        inputs:1,
+        outputs:0,
+        icon: "station.png",
+        label: function() {
+            return this.name||this.station_id
+        },
+        oneditprepare: updateDevices
+    });
+    function updateDevices() {
+                let config = RED.nodes.node($('#node-input-token').val());
+                let selector = $('#node-input-station_id');
+                selector.empty();
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                    //alert(config.id + " " + JSON.stringify(data));
+                        data.devices.forEach(device => {
+                       // alert(device.node);
+                            //let stationNode = RED.nodes.node(device.node)
+                            selector.append(`<option value="${device.id}"> 
+                                       ${device.name}(${device.id})
+                                  </option>`)
+                    });
+                });
+                $('#node-input-input').on('change', function(type, value) {
+                    //var val = $(this).val();
+                    //alert(val);
+                    if ($(this).val() == 'tts') {
+                        $('#volume-range').show();
+                        $('#listening-checkbox').show();
+                        $('#pause-checkbox').show();
+                        if ($('#node-input-volumeFlag').prop("checked")){$('#node-input-volume').show();$('#range-label').show();}
+                       
+                    } else {
+                        $('#volume-range').hide();
+                        $('#listening-checkbox').hide();
+                        $('#pause-checkbox').hide();
+                       
+                    }
+                    if ($(this).val() == 'homekit') {
+                        $('#default-command').show();
+                    } else {
+                        $('#default-command').hide();
+                    }
+                });
+                //$('#node-input-volume').hide();
+                $('#node-input-volumeFlag').on('change', function(type, value) {
+                    let val = $(this).val();
+                    //alert($(this).val());
+                    if ($('#node-input-input').val() == 'tts' && $(this).prop("checked")) {
+                        $('#node-input-volume').show();
+                        $('#range-label').show();
+                       
+                    } else if ($('#node-input-input').val() == 'tts' && !$(this).prop("checked") ) {
+                        $('#node-input-volume').hide();
+                        $('#range-label').hide();
+                       
+                    }
+                })
+                $('#node-input-volume').on('change', function() {
+                    $('#volume-level').text(`${parseFloat($('#node-input-volume').val())*100}`)
+                })
+            }  
+</script>
+
+<script type="text/html" data-template-name="alice-local-out">
+    <style>
+        .label-long {min-width: 150px;width: 20%;}
+        .online {display: inline-block; width: auto; vertical-align: middle;}
+    </style> 
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-bookmark"></i>Name</label>
+        <input type="text" id="node-input-name" placeholder="">
+    </div>
+    <div class="form-row">
+        <label for="node-input-token"><i class="fa fa-globe"></i>Login</label>
+        <input type="text" id="node-input-token" placeholder="token">
+    </div>
+    <div class="form-row">
+        <label for="node-input-station_id"><i class="fa fa-database">Station</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 40px;">
+                <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
+            </div>        
+            <div style="text-align: end; display: inline; float: right">
+                <button onclick="updateDevices()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-input"><i class="fa fa-arrow-circle-o-right">Node Input</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 0px;">
+                <select id="node-input-input" data-single="true" style="width: 100%">
+                    <option value="command">Player Command</option>
+                    <option value="voice">Voice Command</option>
+                    <option value="tts">TTS</option>
+                    <option value="homekit">Homekit Formatted</option>
+                    <option value="raw">Raw Command</option>
+                    <option value="stopListening">Stop Listening</option>
+                </select>
+             </div>
+        </div>
+    </div>
+
+    <div class="form-row" id="volume-range">
+        <label for="node-input-volume" class="label-long"><i class="fa fa-volume-up"></i>Fixed volume Level</label>
+        <input type="checkbox" id="node-input-volumeFlag" style="display: inline-block; width: auto; vertical-align: baseline;"> 
+        <input type="range" id="node-input-volume" name="volume" min="0" max="1" step="0.1" style="display: inline-block; width: 150px; margin-left: 10px; vertical-align: middle;">
+        <div id="range-label" class='online'><span id="volume-level" class="online"></span><span class="online">%</span></div>
+    </div>
+    <div class="form-row" id="listening-checkbox">
+        <label for="node-input-stopListening" class="label-long"><i class="fa fa-deaf"></i>Prevent Listening</label>
+        <input type="checkbox" id="node-input-stopListening" style="display: inline-block; width: auto; vertical-align: baseline;"> 
+    </div>
+    <div class="form-row" id="pause-checkbox">
+        <label for="node-input-pauseMusic" class="label-long"><i class="fa fa-pause"></i>Pause while TTS</label>
+        <input type="checkbox" id="node-input-pauseMusic" style="display: inline-block; width: auto; vertical-align: baseline;"> 
+    </div>
+    <div class="form-row" id="default-command">
+        <label for="node-input-noTrack" class="label-long" style="display: inline-block"><i class="fa fa-podcast"></i>Default command</label>
+        <input type="text" id="node-input-noTrack" placeholder="Включи музыку" style="display: inline-block;left: 0px; right: 0px; width: 60%; vertical-align: middle;">
+    </div>
+    <div class="form-row" style="vertical-align:bottom;">
+        <label for='node-input-debugFlag'><i class='fa fa-share-square'>Debug</i></label>
+        <input type="checkbox" id="node-input-debugFlag" checked="checked" style="display: inline-block; width: auto; vertical-align: top;"> 
+    </div>
+</script>
+
+<script type="text/html" data-help-name="alice-local-out">
+    <p> Output node for Yandex Station local management</p>
+</script>
