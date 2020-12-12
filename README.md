@@ -102,7 +102,8 @@
 ```
 6. Включить исполнителя по ID
 
-```json{
+```json
+{
     "command": "playMusic",
     "id": "2",
     "type":"artist"
