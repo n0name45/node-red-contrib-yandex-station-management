@@ -8,11 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://dimanoname@bitbucket.org/dimanoname/alicelocalmanagement.git"
+    "url": "git+https://github.com/n0name45/node-red-contrib-yandex-station-management"
   },
   "author": "n0name",
   "license": "ISC",
-  "homepage": "https://bitbucket.org/dimanoname/alicelocalmanagement#readme",
+  "homepage": "https://github.com/n0name45/node-red-contrib-yandex-station-management",
    "node-red": {
         "nodes": {
             "alice-local-in": "nodes/in.js",
