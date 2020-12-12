@@ -31,7 +31,7 @@ module.exports = function(RED) {
         node.onStatus = function(data) {
             node.status({fill: data.color,shape:"dot",text: data.text});
         }
-        node.controller.on(`statusUpdate_${node.station}`, node.onStatus)
+       
 
         node.on('close', () => {
             node.controller.removeListener(`statusUpdate_${node.station}`, node.onStatus) 
@@ -39,6 +39,7 @@ module.exports = function(RED) {
 
         if (node.controller) {
             node.onStatus(node.controller.getStatus(node.station))
+            node.controller.on(`statusUpdate_${node.station}`, node.onStatus)
         }
     }
     RED.nodes.registerType("alice-local-out",AliceLocalOutNode);

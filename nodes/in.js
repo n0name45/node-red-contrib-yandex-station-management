@@ -61,9 +61,10 @@ module.exports = function(RED) {
         debugMessage(`Listening for ${node.station}`);
         if (node.controller) {
             node.onStatus(node.controller.getStatus(node.station))
+            node.controller.on(`message_${node.station}`, node.onMessage);
+            node.controller.on(`statusUpdate_${node.station}`, node.onStatus);
         }
-        node.controller.on(`message_${node.station}`, node.onMessage);
-        node.controller.on(`statusUpdate_${node.station}`, node.onStatus);
+       
         node.on('close', node.onClose);
 
 

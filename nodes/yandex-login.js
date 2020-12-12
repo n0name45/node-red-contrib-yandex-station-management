@@ -4,17 +4,18 @@ var WebSocket = require("ws");
 
 module.exports = function(RED) {
 
-    function YandexLoginNode(n) {
-        RED.nodes.createNode(this,n);
+    function YandexLoginNode(config) {
+        RED.nodes.createNode(this,config);
         let node = this
         node.token = this.credentials.token;
         node.getStatus = getStatus;
         node.sendMessage = sendMessage;
-        node.debugFlag = true;
+        node.debugFlag = config.debugFlag;
         node.deviceList = [];
         node.readyList = [];
         node.activeStationList = [];
-    
+        
+        
        
         node.on('stopListening', onStopListening);
         node.on('startPlay', onStartPlay)
@@ -106,13 +107,14 @@ module.exports = function(RED) {
             let options = { 
                 method: 'GET',
                 url: 'https://quasar.yandex.net/glagol/token',
-                qs: { device_id: device.id },
+                qs: { device_id: device.id, platform: device.platform },
                 headers: 
                     { 
                         'Authorization': 'Oauth ' + node.token,
                         'Content-Type': 'application/json' 
                     } 
                 };
+            //   debugMessage(JSON.stringify(options))
             await rp(options)
             .then(function(response)
             {

@@ -44,12 +44,13 @@ module.exports = function(RED) {
         }
         
         node.on('input', node.onInput);
-        node.controller.on(`message_${node.station}`, node.onMessage)
-        node.controller.on(`statusUpdate_${node.station}`, node.onStatus)
+
         node.on('close', node.onClose)
 
         if (node.controller) {
             node.onStatus(node.controller.getStatus(node.station))
+            node.controller.on(`message_${node.station}`, node.onMessage)
+            node.controller.on(`statusUpdate_${node.station}`, node.onStatus)
         }
     }
     RED.nodes.registerType("alice-local-get",AliceLocalGetNode);

@@ -28,9 +28,22 @@
         label: function() {
             return this.name||this.station_id;
         },
-        oneditprepare: updateDevices
+        oneditprepare: onOpen
     });
+    function onOpen() {
+        updateDevices()
+        $('#node-input-output').on('change', function(type, value) {
+                    if ($(this).val() == 'homekit') {
+                        $('#node-unique').show();
+                    } else {
+                        $('#node-unique').hide();
+                    }
+        });
+                
+
+    }
     function updateDevices() {
+                alert(this.station_id);
                 let config = RED.nodes.node($('#node-input-token').val());
                 let selector = $('#node-input-station_id');
                 selector.empty();
@@ -41,14 +54,9 @@
                                   </option>`)
                     });
                 });
-                $('#node-input-output').on('change', function(type, value) {
-                    if ($(this).val() == 'homekit') {
-                        $('#node-unique').show();
-                    } else {
-                        $('#node-unique').hide();
-                    }
-                });
-                
+                if (this.station_id) {
+                    $(`#node-input-station_id option[value=${this.station_id}]`).prop('selected', true);
+                }
             }  
 </script>
 

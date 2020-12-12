@@ -38,23 +38,11 @@
         label: function() {
             return this.name||this.station_id
         },
-        oneditprepare: updateDevices
+        oneditprepare: onOpen
     });
-    function updateDevices() {
-                let config = RED.nodes.node($('#node-input-token').val());
-                let selector = $('#node-input-station_id');
-                selector.empty();
-                $.getJSON('yandexdevices_'+config.id,function(data) {
-                    //alert(config.id + " " + JSON.stringify(data));
-                        data.devices.forEach(device => {
-                       // alert(device.node);
-                            //let stationNode = RED.nodes.node(device.node)
-                            selector.append(`<option value="${device.id}"> 
-                                       ${device.name}(${device.id})
-                                  </option>`)
-                    });
-                });
-                $('#node-input-input').on('change', function(type, value) {
+    function onOpen() {
+        updateDevices();
+        $('#node-input-input').on('change', function(type, value) {
                     //var val = $(this).val();
                     //alert(val);
                     if ($(this).val() == 'tts') {
@@ -74,9 +62,9 @@
                     } else {
                         $('#default-command').hide();
                     }
-                });
+        });
                 //$('#node-input-volume').hide();
-                $('#node-input-volumeFlag').on('change', function(type, value) {
+        $('#node-input-volumeFlag').on('change', function(type, value) {
                     let val = $(this).val();
                     //alert($(this).val());
                     if ($('#node-input-input').val() == 'tts' && $(this).prop("checked")) {
@@ -88,10 +76,26 @@
                         $('#range-label').hide();
                        
                     }
-                })
-                $('#node-input-volume').on('change', function() {
-                    $('#volume-level').text(`${parseFloat($('#node-input-volume').val())*100}`)
-                })
+            })
+        $('#node-input-volume').on('change', function() {
+            $('#volume-level').text(`${parseFloat($('#node-input-volume').val())*100}`)
+        })
+    }
+    function updateDevices() {
+                let config = RED.nodes.node($('#node-input-token').val());
+                let selector = $('#node-input-station_id');
+                selector.empty();
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                        data.devices.forEach(device => {
+                            selector.append(`<option value="${device.id}"> 
+                                       ${device.name}(${device.id})
+                                  </option>`)
+                    });
+                });
+                if (this.station_id) {
+                    $(`#node-input-station_id option[value=${this.station_id}]`).prop('selected', true);
+                }
+                
             }  
 </script>
 

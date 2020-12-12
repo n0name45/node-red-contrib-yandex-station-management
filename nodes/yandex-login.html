@@ -6,7 +6,10 @@
         },
         defaults: {
             name: {value: null,
-                required: true}
+                required: true}, 
+            debugFlag: {
+                value: false
+            }
         },
         label: function(){ return this.name  || "YandexLogin" }
     });
@@ -21,5 +24,8 @@
         <label for="node-config-input-token"><i class="fa fa-bookmark"></i> oAuthToken </label>
         <input type="text" id="node-config-input-token">
     </div>
-    
+    <div class="form-row">
+        <label for='node-config-input-debugFlag' style="min-width: 110px; width: 20%;"><i class='fa fa-share-square'>Debug</i></label>
+        <input type="checkbox" id="node-config-input-debugFlag" style="display: inline-block; width: auto; vertical-align: top;"> 
+    </div>
 </script>

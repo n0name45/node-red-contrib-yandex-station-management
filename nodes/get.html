@@ -25,20 +25,25 @@
         label: function() {
             return this.name||this.station_id;
         },
-        oneditprepare: updateDevices
+        oneditprepare: onOpen
     });
+    function onOpen() {
+        updateDevices();
+    }
     function updateDevices() {
                 let config = RED.nodes.node($('#node-input-token').val());
                 let selector = $('#node-input-station_id');
                 selector.empty();
                 $.getJSON('yandexdevices_'+config.id,function(data) {
                         data.devices.forEach(device => {
-
                             selector.append(`<option value="${device.id}"> 
                                        ${device.name}(${device.id})
                                   </option>`)
                     });
                 });
+                if (this.station_id) {
+                    $(`#node-input-station_id option[value=${this.station_id}]`).prop('selected', true);
+                }
                 
             }  
 </script>
