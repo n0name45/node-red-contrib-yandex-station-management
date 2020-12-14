@@ -102,6 +102,16 @@ module.exports = function(RED) {
                 debugMessage(err);
             });
         }
+
+        function removeDevice(readyList, device) {
+            let deviceToRemove = readyList.find(item => item.id == device.id)
+            if (deviceToRemove) {
+                debugMessage(`Removing device from list: ${deviceToRemove.id}`);
+                readyList.splice(readyList.indexOf(deviceToRemove),1);
+            }
+        }
+
+
         async function getLocalToken(device) {
             let data;
             let options = { 
@@ -115,15 +125,18 @@ module.exports = function(RED) {
                     } 
                 };
             //   debugMessage(JSON.stringify(options))
+            statusUpdate({"color": "yellow", "text": "connecting..."}, device);
             await rp(options)
             .then(function(response)
             {
                 data = JSON.parse(response);
                 device.token = data.token
+                device.localConnectionFlag = true;
     
             })
             .catch(function (err) {
-              debugMessage(err)
+                removeDevice(node.readyList, device);
+                debugMessage(err)
             });
         };
 
@@ -158,9 +171,18 @@ module.exports = function(RED) {
             getLocalToken(device)
             .then(() => {
                 makeConn(device)
+                .then(() => {
+                    //statusUpdate({"color": "green", "text": "connected"}, device);
+                    //device.localConnectionFlag = true;
+                    //debugMessage(`connection of ${device.id} success!`);
+                })
+                .catch(function (err) {
+                    debugMessage(err)
+                  });
             })
             .catch(function (err) {
-                debugMessage(err)
+                debugMessage('Error while getting token: ' + err);
+
               });
         }
         
@@ -180,11 +202,14 @@ module.exports = function(RED) {
             device.ws.on('open', function open(data) { 
                 debugMessage(`Connected to ${device.host}, data: ${data}`);
                 sendMessage(device.id, 'command', {payload: 'ping'});
-                device.localConnectionFlag = true;
+                statusUpdate({"color": "green", "text": "connected"}, device);
+                //device.localConnectionFlag = true;
+                debugMessage(`connection of ${device.id} success!`);
+                //device.localConnectionFlag = true;
+                device.failConnectionAttempts = 0;
                 device.waitForListening = false;
                 device.playAfterTTS = false;
-                statusUpdate({"color": "green", "text": "connected"}, device);
-                device.watchDog = setTimeout(() => device.ws.terminate(), 10000);
+                device.watchDog = setTimeout(() => device.ws.close(), 10000);
             });
             device.ws.on('message', function incoming(data) {
                 device.lastState = JSON.parse(data).state; 
@@ -193,32 +218,41 @@ module.exports = function(RED) {
                 if (device.lastState.aliceState == 'LISTENING' && device.playAfterTTS) {node.emit('startPlay', device)}
                 clearTimeout(device.watchDog);
                 device.watchDog = setTimeout(() => {
-                device.ws.terminate()}, 10000);
+                device.ws.close()}, 10000);
             }); 
 
             device.ws.on('close', function close(code, reason){
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
                 device.lastState = {};
+            //if (device.failConnectionAttempts == 3) {
+            //    device.localConnectionFlag = false;
+            //    removeDevice(node.readyList, device);
+            //    node.emit('refreshHttp', node.readyList);
+            //}
             if (device.localConnectionFlag) {
                     switch(code) {
                         case 4000:  //invalid token
+                            device.failConnectionAttempts =+ 1;
                             debugMessage(`getting new token...`);
                             connect(device);
                             break;
                         case 1000:  
+                            device.failConnectionAttempts =+ 1;
                             connect(device);
                             break;   
                         case 1006:
-                            debugMessage(`Lost server, reconnect in 10 seconds...${code} + ${reason}` );
-                            setTimeout(connect, 10000, device);
+                            device.failConnectionAttempts =+ 1;    
+                            debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
+                            setTimeout(connect, 60000, device);
                             break;
                         default:
-                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 10 seconds.` );
-                            setTimeout(connect, 10000, device);
+                            device.failConnectionAttempts =+ 1;
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 60 seconds.` );
+                            setTimeout(connect, 60000, device);
                             break;
                     }
                 }
-                device.localConnectionFlag = false;
+                //device.localConnectionFlag = false;
                 clearTimeout(device.watchDog);
             })            
             // device.ws.on('ping', function ping(data){
@@ -226,10 +260,11 @@ module.exports = function(RED) {
 
             // })
             device.ws.on('error', function error(data){
+                //statusUpdate({"color": "red", "text": "disconnected"}, device);
                 debugMessage(`error: ${data}`);
-                if (data == `Error: connect ECONNREFUSED ${device.address}:${device.port}`) {
-                    debugMessage(`Lost server, reconnect in 10 seconds...` );
-                    setTimeout(connect, 10000, device);
+                if (device.localConnectionFlag) {
+                    //debugMessage(`Reconnecting in 10 seconds...` );
+                    //setTimeout(connect, 10000, device);
                 }
             });
 
@@ -319,7 +354,7 @@ module.exports = function(RED) {
         }
         function sendMessage(deviceId, messageType, message) {
             let device = searchDeviceByID(deviceId);
-            debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
+            //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
             debugMessage(`WS.STATE: ${device.ws.readyState} recive ${messageType} with ${JSON.stringify(message)}`);
             if (device.ws.readyState == 1){
 

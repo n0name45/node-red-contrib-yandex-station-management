@@ -41,7 +41,18 @@
         oneditprepare: onOpen
     });
     function onOpen() {
-        updateDevices();
+        let config = RED.nodes.node($('#node-input-token').val());
+        let selector = $('#node-input-station_id');
+        selector.empty();
+        let currentId = this.station_id;
+        $.getJSON('yandexdevices_'+config.id,function(data) {
+            data.devices.forEach(device => {
+            selector.append(`<option value="${device.id}"> 
+            ${device.name}(${device.id})
+             </option>`)
+             $(`#node-input-station_id :contains(${currentId})`).attr("selected", "selected"); 
+            });
+        });
         $('#node-input-input').on('change', function(type, value) {
                     //var val = $(this).val();
                     //alert(val);
@@ -82,19 +93,7 @@
         })
     }
     function updateDevices() {
-                let config = RED.nodes.node($('#node-input-token').val());
-                let selector = $('#node-input-station_id');
-                selector.empty();
-                $.getJSON('yandexdevices_'+config.id,function(data) {
-                        data.devices.forEach(device => {
-                            selector.append(`<option value="${device.id}"> 
-                                       ${device.name}(${device.id})
-                                  </option>`)
-                    });
-                });
-                if (this.station_id) {
-                    $(`#node-input-station_id option[value=${this.station_id}]`).prop('selected', true);
-                }
+                
                 
             }  
 </script>
@@ -120,7 +119,7 @@
                 <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
             </div>        
             <div style="text-align: end; display: inline; float: right">
-                <button onclick="updateDevices()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+                <button onclick="onOpen()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
             </div>
         </div>
     </div>

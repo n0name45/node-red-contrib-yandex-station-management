@@ -30,33 +30,27 @@
         },
         oneditprepare: onOpen
     });
-    function onOpen() {
-        updateDevices()
-        $('#node-input-output').on('change', function(type, value) {
-                    if ($(this).val() == 'homekit') {
-                        $('#node-unique').show();
-                    } else {
-                        $('#node-unique').hide();
-                    }
-        });
-                
 
-    }
-    function updateDevices() {
-                alert(this.station_id);
+    function onOpen() {
                 let config = RED.nodes.node($('#node-input-token').val());
                 let selector = $('#node-input-station_id');
                 selector.empty();
+                let currentId = this.station_id;
                 $.getJSON('yandexdevices_'+config.id,function(data) {
                         data.devices.forEach(device => {
                             selector.append(`<option value="${device.id}"> 
                                        ${device.name}(${device.id})
                                   </option>`)
+                        $(`#node-input-station_id :contains(${currentId})`).attr("selected", "selected"); 
                     });
                 });
-                if (this.station_id) {
-                    $(`#node-input-station_id option[value=${this.station_id}]`).prop('selected', true);
-                }
+                $('#node-input-output').on('change', function(type, value) {
+                    if ($(this).val() == 'homekit') {
+                        $('#node-unique').show();
+                    } else {
+                        $('#node-unique').hide();
+                    }
+                });
             }  
 </script>
 
@@ -82,7 +76,7 @@
                 <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
             </div>        
             <div style="text-align: end; display: inline; float: right">
-                <button onclick="updateDevices()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+                <button onclick="onOpen()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
             </div>
         </div>
     </div>
