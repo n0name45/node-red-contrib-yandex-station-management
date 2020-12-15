@@ -21,8 +21,8 @@ module.exports = function(RED) {
                     return {'payload': message}
                 case 'homekit':
                     return {'payload': {
-                        "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
+                        "CurrentMediaState": (message.playing !== undefined && message.playing) ? 0 : 1,
+                        "ConfiguredName": `${(message.playerState.subtitle !== undefined) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title !== undefined) ? message.playerState.title : 'No Track Name'}`
                     }
                 };
             }

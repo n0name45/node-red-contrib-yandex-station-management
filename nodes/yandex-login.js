@@ -20,6 +20,7 @@ module.exports = function(RED) {
         node.on('stopListening', onStopListening);
         node.on('startPlay', onStartPlay)
         node.on('deviceReady', onDeviceReady);
+        node.setMaxListeners(50)
         
         function debugMessage(text){
             if (node.debugFlag) {
@@ -71,9 +72,13 @@ module.exports = function(RED) {
                 return node.deviceList;
             })
             .catch(function (err) {
-                node.emit('refreshHttp', node.readyList);
+                //node.emit('refreshHttp', node.readyList);
                 debugMessage(err);
-                debugMessage(JSON.stringify(options));
+                //console.log(JSON.stringify(err))
+                if (err.statusCode == 403) {
+                    node.error('Bad oAuth token');
+                }
+                //debugMessage(JSON.stringify(options));
                 return;
             });
         }
@@ -273,15 +278,45 @@ module.exports = function(RED) {
         }
 
         function messageConstructor(messageType, message, device){
+            let commands = ['play', 'stop', 'next', 'prev', 'ping'];
+            let extraCommands = ['forward', 'backward'];
             switch(messageType){
                 case 'command':
-                    if (['play', 'stop', 'next', 'prev', 'ping'].includes(message.payload)){
+                    if (commands.includes(message.payload)){
                         return [{ "command": message.payload}];
+                    } else if (extraCommands.includes(message.payload) && device.lastState.playerState !== undefined){
+                        let currentPosition = device.lastState.playerState.progress;
+                        let duration = device.lastState.playerState.duration;
+                        if (message.payload == 'forward'){
+                                let targetPosition = currentPosition + 10
+                                if (targetPosition < duration) {
+                                    return [{
+                                        "command": "rewind",
+                                        "position": targetPosition
+                                    }]
+                                } else {
+                                    return messageConstructor('command', {'payload': 'next'})
+                                }
+                            }else if (message.payload == 'backward') {
+                                let targetPosition = currentPosition - 10;
+                                if (targetPosition > 0) {
+                                    return [{
+                                        "command": "rewind",
+                                        "position": targetPosition
+                                    }]
+                                } else {
+                                    return [{
+                                        "command": "rewind",
+                                        "position": 0
+                                    }] 
+                                }
+                            }
+
                     } else {
-                        debugMessage('unknown command. Send commands: play, stop, next, prev in payload of message ')
+                        debugMessage(`Bad command!`)
+                        //node.error(`You can send commands in msg.payload from list as String ${commands + extraCommands}`);
                         return [{"command": "ping"}];
                     }
-                    break;
                 case 'voice': 
                     debugMessage(`Message Voice command: ${message}`);
                     return [{
