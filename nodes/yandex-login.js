@@ -176,14 +176,6 @@ module.exports = function(RED) {
             getLocalToken(device)
             .then(() => {
                 makeConn(device)
-                .then(() => {
-                    //statusUpdate({"color": "green", "text": "connected"}, device);
-                    //device.localConnectionFlag = true;
-                    //debugMessage(`connection of ${device.id} success!`);
-                })
-                .catch(function (err) {
-                    debugMessage(err)
-                  });
             })
             .catch(function (err) {
                 debugMessage('Error while getting token: ' + err);

@@ -20,9 +20,28 @@ module.exports = function(RED) {
                 case 'status':
                     return {'payload': message}
                 case 'homekit':
+                    let currentState = 1;
+                    let configuredName = '';
+                    if (typeof message.playing !== "undefined") {
+                        if (message.playing == true) {
+                            currentState = 0;
+                        } else {
+                            currentState = 1;
+                        }
+                    }
+                    if (typeof message.playerState.subtitle !== "undefined") {
+                       configuredName = configuredName + message.playerState.subtitle
+                    } else {
+                        configuredName = configuredName + 'No Artist - '
+                    }
+                    if (typeof message.playerState.title !== "undefined") {
+                        configuredName = configuredName + message.playerState.title
+                    } else {
+                        configuredName = configuredName + 'No Track'
+                    }
                     return {'payload': {
-                        "CurrentMediaState": (message.playing !== undefined && message.playing) ? 0 : 1,
-                        "ConfiguredName": `${(message.playerState.subtitle !== undefined) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title !== undefined) ? message.playerState.title : 'No Track Name'}`
+                        "CurrentMediaState": currentState,
+                        "ConfiguredName": configuredName
                     }
                 };
             }

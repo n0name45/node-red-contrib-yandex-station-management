@@ -1,0 +1,659 @@
+﻿[
+    {
+        "id": "6d967d03.f2607c",
+        "type": "tab",
+        "label": "Алиса Плеер",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "dd68174c.ec6138",
+        "type": "group",
+        "z": "6d967d03.f2607c",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "e70eb68c.35945",
+            "836c205c.b2ea2",
+            "ee899499.205308",
+            "20e86324.bfe3ac",
+            "a4a75ef3.e4c7f",
+            "32912ee1.ebb022",
+            "16805baa.e729d4",
+            "df2e2cf0.594668",
+            "30ba5707.02281",
+            "3c4216e7.1b05f2",
+            "e956e6f0.471508",
+            "9d59c747.5b7ca8",
+            "fb5974ef.2f17f",
+            "4dbb1440.c229cc",
+            "48496da1.e93a7c",
+            "2d350e53.8e92aa",
+            "cb76e74d.bb76c8",
+            "b69e00bc.41cd78",
+            "548513e9.da4be4",
+            "b6f9301a.f6b258",
+            "1a49b7b5.9e765",
+            "547f37f9.d9b408",
+            "b398d83b.ddd24",
+            "de15f41b.81b168",
+            "63e075f8.ecef3c",
+            "5c253a87.7e8734"
+        ],
+        "x": 54,
+        "y": 19,
+        "w": 1012,
+        "h": 462
+    },
+    {
+        "id": "e70eb68c.35945",
+        "type": "alice-local-in",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "IN",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "74005034440c0809084e",
+        "uniqueFlag": false,
+        "debugFlag": false,
+        "output": "status",
+        "x": 130,
+        "y": 260,
+        "wires": [
+            [
+                "836c205c.b2ea2",
+                "ee899499.205308",
+                "20e86324.bfe3ac",
+                "fb5974ef.2f17f",
+                "48496da1.e93a7c",
+                "548513e9.da4be4"
+            ]
+        ]
+    },
+    {
+        "id": "836c205c.b2ea2",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Артист",
+        "func": "var characteristic = {};\ncharacteristic = msg.payload.playerState.subtitle;\nmsg.topic = msg.label = 'Исполнитель';\nnode.status({fill:\"blue\",shape:\"dot\",text: \"Артист: \"+ msg.payload.playerState.subtitle});\nmsg.payload = characteristic;\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 340,
+        "y": 60,
+        "wires": [
+            [
+                "30ba5707.02281"
+            ]
+        ]
+    },
+    {
+        "id": "ee899499.205308",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Композиция",
+        "func": "var characteristic = {};\ncharacteristic = msg.payload.playerState.title;\nmsg.topic = msg.label = 'Песня';\nnode.status({fill:\"green\",shape:\"dot\",text: \"Композиция: \"+ msg.payload.playerState.title});\nmsg.payload = characteristic;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 350,
+        "y": 120,
+        "wires": [
+            [
+                "3c4216e7.1b05f2"
+            ]
+        ]
+    },
+    {
+        "id": "20e86324.bfe3ac",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Воспроизведение",
+        "func": "var characteristics;\nif (msg.payload.playing === true)\n{\n    characteristics = \"🔊 Алиса\";\n}\nif (msg.payload.playing === false)\n{\n    characteristics = \"🔇 Алиса\";\n}\nmsg.topic = msg.label = 'Алиса';\nnode.status({fill:\"green\",shape:\"dot\",text: \"Воспроизв.: \"+ msg.payload.playing});\nmsg.payload = characteristics;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 370,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a4a75ef3.e4c7f",
+        "type": "alice-local-out",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Player",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "74005034440c0809084e",
+        "debugFlag": false,
+        "input": "command",
+        "volume": "0.2",
+        "volumeFlag": true,
+        "stopListening": false,
+        "pauseMusic": true,
+        "noTrack": "",
+        "x": 990,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "32912ee1.ebb022",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Next",
+        "group": "e0dde9d5.cf3d28",
+        "order": 10,
+        "width": 1,
+        "height": 1,
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "{{msg.background}}.",
+        "icon": "fast_forward",
+        "payload": "next",
+        "payloadType": "str",
+        "topic": "",
+        "x": 690,
+        "y": 140,
+        "wires": [
+            [
+                "a4a75ef3.e4c7f"
+            ]
+        ]
+    },
+    {
+        "id": "16805baa.e729d4",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Stop",
+        "group": "e0dde9d5.cf3d28",
+        "order": 11,
+        "width": 1,
+        "height": 1,
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "{{msg.background}}.",
+        "icon": "pause",
+        "payload": "stop",
+        "payloadType": "str",
+        "topic": "",
+        "x": 690,
+        "y": 100,
+        "wires": [
+            [
+                "a4a75ef3.e4c7f"
+            ]
+        ]
+    },
+    {
+        "id": "df2e2cf0.594668",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Play",
+        "group": "e0dde9d5.cf3d28",
+        "order": 9,
+        "width": 1,
+        "height": 1,
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "{{msg.background}}.",
+        "icon": "play_arrow",
+        "payload": "play",
+        "payloadType": "str",
+        "topic": "",
+        "x": 690,
+        "y": 60,
+        "wires": [
+            [
+                "a4a75ef3.e4c7f"
+            ]
+        ]
+    },
+    {
+        "id": "30ba5707.02281",
+        "type": "ui_text",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "group": "e0dde9d5.cf3d28",
+        "order": 13,
+        "width": 0,
+        "height": 0,
+        "name": "Исполнитель",
+        "label": "🎤",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 515,
+        "y": 60,
+        "wires": [],
+        "l": false
+    },
+    {
+        "id": "3c4216e7.1b05f2",
+        "type": "ui_text",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "group": "e0dde9d5.cf3d28",
+        "order": 14,
+        "width": 0,
+        "height": 0,
+        "name": "Песня",
+        "label": "🎵",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 515,
+        "y": 120,
+        "wires": [],
+        "l": false
+    },
+    {
+        "id": "e956e6f0.471508",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Back",
+        "group": "e0dde9d5.cf3d28",
+        "order": 8,
+        "width": 1,
+        "height": 1,
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "{{msg.background}}.",
+        "icon": "fast_rewind",
+        "payload": "prev",
+        "payloadType": "str",
+        "topic": "",
+        "x": 690,
+        "y": 180,
+        "wires": [
+            [
+                "a4a75ef3.e4c7f"
+            ]
+        ]
+    },
+    {
+        "id": "9d59c747.5b7ca8",
+        "type": "ui_template",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "group": "e0dde9d5.cf3d28",
+        "name": "",
+        "order": 1,
+        "width": 6,
+        "height": 6,
+        "format": "<img id=\"picture\" src=\"{{msg.payload}}\"  style=\"width:100%;\"/>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 515,
+        "y": 260,
+        "wires": [
+            []
+        ],
+        "l": false
+    },
+    {
+        "id": "fb5974ef.2f17f",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Алиса",
+        "func": "var str;\nvar result;\nif (msg.payload.playerState.extra !== null)\n{\n  str = (typeof msg.payload.playerState.extra.coverURI !== \"undefined\")?msg.payload.playerState.extra.coverURI:\"avatars.mds.yandex.net/get-music-misc/29541/img.5e6a1c5b38be6e3bae26558a/%%\" ;\n   \n}\nelse  {\n  str = \"avatars.mds.yandex.net/get-music-misc/29541/img.5e6a1c5b38be6e3bae26558a/%%\";\n   \n}\nresult = str.replace(/%%/g,\"600x600\");\n//node.status({fill:\"green\",shape:\"dot\",text: result});\nmsg.payload = \"http://\"+result;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 330,
+        "y": 260,
+        "wires": [
+            [
+                "9d59c747.5b7ca8"
+            ]
+        ]
+    },
+    {
+        "id": "4dbb1440.c229cc",
+        "type": "ui_text",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "group": "e0dde9d5.cf3d28",
+        "order": 6,
+        "width": "2",
+        "height": 1,
+        "name": "Длительность",
+        "label": "",
+        "format": "{{msg.payload}}",
+        "layout": "row-left",
+        "x": 515,
+        "y": 320,
+        "wires": [],
+        "l": false
+    },
+    {
+        "id": "48496da1.e93a7c",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Длительность",
+        "func": "var characteristic = {};\nlet duration = msg.payload.playerState.duration || 0;\nlet currentProgress = msg.payload.playerState.progress || 0;\ncharacteristic = msg.payload.playerState.duration;\nnode.status({fill:\"blue\",shape:\"dot\",text: \"Длительность: \"+msg.payload.playerState.duration});\nfunction prepareMinutes(currentPosition) {\n    if (Math.floor(currentPosition / 60) < 10) {\n     return `0${Math.floor(currentPosition / 60)}`\n    } else {\n        return `${Math.floor(currentPosition / 60)}`\n    }\n}\n\nfunction prepareSeconds(currentPosition) {\n    if (Math.floor(currentPosition % 60) < 10) {\n     return `0${Math.floor(currentPosition % 60)}`\n    } else {\n        return `${Math.floor(currentPosition % 60)}`\n    }\n}\n\n\n\nmsg.payload = '-' + prepareMinutes(duration-currentProgress) + ':' + prepareSeconds(duration - currentProgress);\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 360,
+        "y": 320,
+        "wires": [
+            [
+                "4dbb1440.c229cc"
+            ]
+        ]
+    },
+    {
+        "id": "2d350e53.8e92aa",
+        "type": "alice-local-out",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "raw command",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "74005034440c0809084e",
+        "debugFlag": false,
+        "input": "raw",
+        "volume": "0.2",
+        "volumeFlag": true,
+        "stopListening": false,
+        "pauseMusic": true,
+        "noTrack": "",
+        "x": 860,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "cb76e74d.bb76c8",
+        "type": "ui_slider",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Громкость",
+        "label": "🔈",
+        "tooltip": "",
+        "group": "e0dde9d5.cf3d28",
+        "order": 2,
+        "width": "4",
+        "height": "1",
+        "passthru": true,
+        "outs": "all",
+        "topic": "",
+        "min": 0,
+        "max": "100",
+        "step": "10",
+        "x": 435,
+        "y": 440,
+        "wires": [
+            [
+                "b69e00bc.41cd78"
+            ]
+        ],
+        "l": false
+    },
+    {
+        "id": "b69e00bc.41cd78",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "formatting",
+        "func": "var characteristics = {};\ncharacteristics.command = \"setVolume\";\ncharacteristics.volume = msg.payload / 100;\nmsg.payload = characteristics;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 550,
+        "y": 440,
+        "wires": [
+            [
+                "2d350e53.8e92aa"
+            ]
+        ]
+    },
+    {
+        "id": "548513e9.da4be4",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Scale",
+        "func": "let characteristics = {};\nlet buffer = flow.get(\"buffer\") || [];\nif (msg.payload.playerState.duration !== undefined && buffer.length === 0)\n{\n    characteristics = (msg.payload.playerState.progress / msg.payload.playerState.duration);\n    //msg.duration = msg.payload.playerState.duration;\n    flow.set(\"duration\", msg.payload.playerState.duration); \n    msg.payload = characteristics;\n    node.send(msg);\n}\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 330,
+        "y": 380,
+        "wires": [
+            [
+                "b6f9301a.f6b258"
+            ]
+        ]
+    },
+    {
+        "id": "b6f9301a.f6b258",
+        "type": "ui_slider",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Время",
+        "label": "",
+        "tooltip": "",
+        "group": "e0dde9d5.cf3d28",
+        "order": 5,
+        "width": "4",
+        "height": "1",
+        "passthru": true,
+        "outs": "all",
+        "topic": "",
+        "min": 0,
+        "max": "1",
+        "step": "0.01",
+        "x": 435,
+        "y": 380,
+        "wires": [
+            [
+                "b398d83b.ddd24"
+            ]
+        ],
+        "l": false
+    },
+    {
+        "id": "1a49b7b5.9e765",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Forward",
+        "group": "e0dde9d5.cf3d28",
+        "order": 12,
+        "width": "1",
+        "height": "1",
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "{{msg.background}}.",
+        "icon": "forward_10",
+        "payload": "forward",
+        "payloadType": "str",
+        "topic": "",
+        "x": 700,
+        "y": 220,
+        "wires": [
+            [
+                "a4a75ef3.e4c7f"
+            ]
+        ]
+    },
+    {
+        "id": "547f37f9.d9b408",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Backward",
+        "group": "e0dde9d5.cf3d28",
+        "order": 7,
+        "width": "1",
+        "height": "1",
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "{{msg.background}}.",
+        "icon": "replay_10",
+        "payload": "backward",
+        "payloadType": "str",
+        "topic": "",
+        "x": 700,
+        "y": 260,
+        "wires": [
+            [
+                "a4a75ef3.e4c7f"
+            ]
+        ]
+    },
+    {
+        "id": "b398d83b.ddd24",
+        "type": "function",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "rewind",
+        "func": "\nfunction storeMessage() {\n        let buffer = flow.get(\"buffer\") || [];\n        buffer.push(msg.payload)\n        flow.set(\"buffer\",buffer)\n       \n}\nfunction flushMessages() {\n    let buffer = flow.get(\"buffer\");\n    if (buffer !== undefined && buffer != []) {\n        let duration = flow.get(\"duration\");\n        let position = buffer.pop();\n        node.send({\"payload\": {\"command\": \"rewind\", \"position\": Math.round(duration*position) }})\n\n    }\n    flow.set(\"buffer\", [])\n}\n\nif (msg.socketid !== undefined) {\n    let timeout = flow.get(\"timeout\");\n    if (timeout !== undefined) clearTimeout(timeout);\n    storeMessage();\n    flow.set(\"timeout\", setTimeout(flushMessages, 100))\n}\n\n//return msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 550,
+        "y": 380,
+        "wires": [
+            [
+                "2d350e53.8e92aa"
+            ]
+        ]
+    },
+    {
+        "id": "de15f41b.81b168",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "like",
+        "group": "e0dde9d5.cf3d28",
+        "order": 3,
+        "width": "1",
+        "height": "1",
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "{{msg.background}}.",
+        "bgcolor": "",
+        "icon": "fa-thumbs-up",
+        "payload": "Поставь лайк",
+        "payloadType": "str",
+        "topic": "",
+        "x": 690,
+        "y": 300,
+        "wires": [
+            [
+                "5c253a87.7e8734"
+            ]
+        ]
+    },
+    {
+        "id": "63e075f8.ecef3c",
+        "type": "ui_button",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "dislike",
+        "group": "e0dde9d5.cf3d28",
+        "order": 4,
+        "width": "1",
+        "height": "1",
+        "passthru": false,
+        "label": "",
+        "tooltip": "",
+        "color": "{{msg.background}}.",
+        "bgcolor": "",
+        "icon": "fa-thumbs-down",
+        "payload": "Поставь дизлайк",
+        "payloadType": "str",
+        "topic": "",
+        "x": 690,
+        "y": 340,
+        "wires": [
+            [
+                "5c253a87.7e8734"
+            ]
+        ]
+    },
+    {
+        "id": "5c253a87.7e8734",
+        "type": "alice-local-out",
+        "z": "6d967d03.f2607c",
+        "g": "dd68174c.ec6138",
+        "name": "Voice",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "74005034440c0809084e",
+        "debugFlag": false,
+        "input": "voice",
+        "volume": "0.5",
+        "volumeFlag": false,
+        "stopListening": true,
+        "pauseMusic": false,
+        "noTrack": "",
+        "x": 970,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "c40e1b9d.adb7b8",
+        "type": "yandex-login",
+        "z": "",
+        "name": "wifi96",
+        "debugFlag": true
+    },
+    {
+        "id": "e0dde9d5.cf3d28",
+        "type": "ui_group",
+        "z": "",
+        "name": "Плеер",
+        "tab": "a3c95ca4.6c156",
+        "order": 1,
+        "disp": false,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "a3c95ca4.6c156",
+        "type": "ui_tab",
+        "name": "Алиса",
+        "icon": "dashboard",
+        "order": 12,
+        "disabled": false,
+        "hidden": false
+    }
+]

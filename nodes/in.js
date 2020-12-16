@@ -12,8 +12,7 @@ module.exports = function(RED) {
         
 
        
-
-        //debugMessage('unique: ' + node.uniqueFlag);
+        debugMessage(`Node settings: ID: ${node.station}, Output Format: ${node.output}`);
         function debugMessage(text){
             if (node.debugFlag) {
                 node.log(text);
@@ -26,19 +25,37 @@ module.exports = function(RED) {
                 case 'status':
                     return {'payload': message}
                 case 'homekit':
+                    let currentState = 1;
+                    let configuredName = '';
+                    if (typeof message.playing !== "undefined") {
+                        if (message.playing == true) {
+                            currentState = 0;
+                        } else {
+                            currentState = 1;
+                        }
+                    }
+                    if (typeof message.playerState.subtitle !== "undefined") {
+                       configuredName = configuredName + message.playerState.subtitle
+                    } else {
+                        configuredName = configuredName + 'No Artist - '
+                    }
+                    if (typeof message.playerState.title !== "undefined") {
+                        configuredName = configuredName + message.playerState.title
+                    } else {
+                        configuredName = configuredName + 'No Track'
+                    }
                     return {'payload': {
-                        "CurrentMediaState": (message.playing !== undefined && message.playing) ? 0 : 1,
-                        "ConfiguredName": `${(message.playerState.subtitle !== undefined) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title !== undefined) ? message.playerState.title : 'No Track Name'}`
+                        "CurrentMediaState": currentState,
+                        "ConfiguredName": configuredName
                     }
                 };
             }
         }
         function sendMessage(message){
             if (node.uniqueFlag) {
-                if (node.output == 'homekit' && JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload)) {
+                if (node.output == 'homekit' && (JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload))) {
                     node.send(message)
                     node.lastMessage = message
-                    if (node.debugFlag) {node.status({fill: "green", shape: "dot", text: `${JSON.stringify(message.payload.CurrentMediaState)}: ${JSON.stringify(message.payload.ConfiguredName)}`})}
                     debugMessage(`Sended message to HK: ${message}`);     
                 
                 }
@@ -59,7 +76,7 @@ module.exports = function(RED) {
             node.controller.removeListener(`statusUpdate_${node.station}`, onStatus);
         }
         debugMessage(`Listening for ${node.station}`);
-        if (node.controller) {
+        if (typeof node.controller !== "undefined")  {
             node.onStatus(node.controller.getStatus(node.station))
             node.controller.on(`message_${node.station}`, node.onMessage);
             node.controller.on(`statusUpdate_${node.station}`, node.onStatus);
