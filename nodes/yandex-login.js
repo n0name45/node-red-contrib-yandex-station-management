@@ -11,7 +11,7 @@ module.exports = function(RED) {
         node.getStatus = getStatus;
         node.sendMessage = sendMessage;
         node.debugFlag = config.debugFlag;
-        node.ipConnect = config.ipConnect;
+        ipConnect = config.ipConnect;
         node.deviceList = [];
         node.readyList = [];
         node.activeStationList = [];
@@ -193,7 +193,7 @@ module.exports = function(RED) {
             };
             device.lastState = {};
             //debugMessage(JSON.stringify(options));
-            if (node.ipConnect){
+            if (ipConnect){
                 debugMessage(`Connecting to wss://${device.address}:${device.port}`);
                 device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
             } else {
