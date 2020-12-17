@@ -11,6 +11,7 @@ module.exports = function(RED) {
         node.getStatus = getStatus;
         node.sendMessage = sendMessage;
         node.debugFlag = config.debugFlag;
+        node.ipConnect = config.ipConnect;
         node.deviceList = [];
         node.readyList = [];
         node.activeStationList = [];
@@ -54,7 +55,7 @@ module.exports = function(RED) {
                 .then(() => {
                    
                     node.deviceList.forEach(device => {
-                        if (device.address != undefined && device.host != undefined && device.port != undefined) {
+                        if (device.address && device.host  && device.port ) {
                            
                              if (node.readyList.find(item => item.id == device.id)){
                                 debugMessage('skipping');
@@ -192,10 +193,14 @@ module.exports = function(RED) {
             };
             device.lastState = {};
             //debugMessage(JSON.stringify(options));
+            if (node.ipConnect){
+                debugMessage(`Connecting to wss://${device.address}:${device.port}`);
+                device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
+            } else {
+                debugMessage(`Connecting to wss://${device.host}:${device.port}`);
+                device.ws = new WebSocket(`wss://${device.host}:${device.port}`, options); 
+            }
 
-            debugMessage(`Connecting to wss://${device.host}:${device.port}`);
-            device.ws = new WebSocket(`wss://${device.host}:${device.port}`, options);
-            
             device.ws.on('open', function open(data) { 
                 debugMessage(`Connected to ${device.host}, data: ${data}`);
                 sendMessage(device.id, 'command', {payload: 'ping'});
@@ -276,7 +281,7 @@ module.exports = function(RED) {
                 case 'command':
                     if (commands.includes(message.payload)){
                         return [{ "command": message.payload}];
-                    } else if (extraCommands.includes(message.payload) && device.lastState.playerState !== undefined){
+                    } else if (extraCommands.includes(message.payload) && device.lastState.playerState ){
                         let currentPosition = device.lastState.playerState.progress;
                         let duration = device.lastState.playerState.duration;
                         if (message.payload == 'forward'){
@@ -323,7 +328,7 @@ module.exports = function(RED) {
                         messageConstructor('command', {payload: 'stop'}).forEach(item => result.push(item))
                        device.playAfterTTS = true
                         }
-                    if (message.volume == undefined){
+                    if (!message.volume){
                         result.push({
                             "command" : "sendText",
                             "text" : `Повтори за мной '${message.payload}'`
