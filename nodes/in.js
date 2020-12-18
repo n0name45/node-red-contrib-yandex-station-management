@@ -32,8 +32,8 @@ module.exports = function(RED) {
             }
         }
         function sendMessage(message){
-            if (node.uniqueFlag) {
-                if (node.output == 'homekit' && (JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload))) {
+            if (node.uniqueFlag && node.output == 'homekit') {
+                if ((JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload))) {
                     node.send(message)
                     node.lastMessage = message
                     debugMessage(`Sended message to HK: ${message}`);     
@@ -55,8 +55,8 @@ module.exports = function(RED) {
             node.controller.removeListener(`message_${node.station}`, node.onMessage);
             node.controller.removeListener(`statusUpdate_${node.station}`, onStatus);
         }
-        debugMessage(`Listening for ${node.station}`);
-        if (typeof node.controller !== "undefined")  {
+        //debugMessage(`Listening for ${node.station}`);
+        if (node.controller)  {
             node.onStatus(node.controller.getStatus(node.station))
             node.controller.on(`message_${node.station}`, node.onMessage);
             node.controller.on(`statusUpdate_${node.station}`, node.onStatus);

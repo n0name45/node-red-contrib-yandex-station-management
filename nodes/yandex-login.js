@@ -11,7 +11,7 @@ module.exports = function(RED) {
         node.getStatus = getStatus;
         node.sendMessage = sendMessage;
         node.debugFlag = config.debugFlag;
-        ipConnect = config.ipConnect;
+        node.ipConnect = config.ipConnect;
         node.deviceList = [];
         node.readyList = [];
         node.activeStationList = [];
@@ -173,6 +173,7 @@ module.exports = function(RED) {
 
         
         function connect(device) {
+            
             debugMessage('recieve conversation token...');
             getLocalToken(device)
             .then(() => {
@@ -185,24 +186,17 @@ module.exports = function(RED) {
         }
         
         async function makeConn(device) {
-
+           
             let options = {
                 key: device.glagol.security.server_private_key,
                 cert: device.glagol.security.server_certificate,
                 rejectUnauthorized: false
             };
             device.lastState = {};
-            //debugMessage(JSON.stringify(options));
-            if (ipConnect){
-                debugMessage(`Connecting to wss://${device.address}:${device.port}`);
-                device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
-            } else {
-                debugMessage(`Connecting to wss://${device.host}:${device.port}`);
-                device.ws = new WebSocket(`wss://${device.host}:${device.port}`, options); 
-            }
-
+            debugMessage(`Connecting to wss://${(node.ipConnect)?device.address:device.host}:${device.port}`);
+            device.ws = new WebSocket(`wss://${(node.ipConnect)?device.address:device.host}:${device.port}`, options);
             device.ws.on('open', function open(data) { 
-                debugMessage(`Connected to ${device.host}, data: ${data}`);
+                debugMessage(`Connected to ${(node.ipConnect)?device.address:device.host}, data: ${data}`);
                 sendMessage(device.id, 'command', {payload: 'ping'});
                 statusUpdate({"color": "green", "text": "connected"}, device);
                 //device.localConnectionFlag = true;
@@ -412,7 +406,7 @@ module.exports = function(RED) {
         
         function getStatus(id) {
             let device = searchDeviceByID(id);
-            if (typeof(device) === 'object') {
+            if (typeof(device) === 'object' && device.ws.readyState) {
                 switch(device.ws.readyState){
                     case 0: 
                     return {"color": "yellow", "text": "connecting..."}
