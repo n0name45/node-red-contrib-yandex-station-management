@@ -7,12 +7,13 @@ module.exports = function(RED) {
         node.output = config.output;
         node.debugFlag = config.debugFlag;
         node.uniqueFlag = config.uniqueFlag;
+        node.homekitFormat = config.homekitFormat;
         node.lastMessage = {};
         node.status({});
         
 
        
-        debugMessage(`Node settings: ID: ${node.station}, Output Format: ${node.output}`);
+        debugMessage(`Node settings: ID: ${node.station}, Output Format: ${node.output}, HK: ${node.homekitFormat}`);
         function debugMessage(text){
             if (node.debugFlag) {
                 node.log(text);
@@ -21,22 +22,58 @@ module.exports = function(RED) {
 
 
         function preparePayload(message){
-            switch(node.output){
-                case 'status':
+            // switch(node.output){
+            //     case 'status':
+            //         return {'payload': message}
+            //     case 'homekit':
+            //         return {'payload': {
+            //             "CurrentMediaState": (message.playing) ? 0 : 1,
+            //             "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
+            //         } }
+            // }
+            if (node.output == 'status') {
                     return {'payload': message}
-                case 'homekit':
+            } else {
+                if (node.homekitFormat == 'speaker') {
                     return {'payload': {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
                         "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
-                    } }
+                    } } 
+                }else {
+                    return {'payload': {
+                        "Active": (message.playing) ? 1 : 0
+                         } 
+                    } 
+                }
             }
+
+            //     case 'status':
+            //         return {'payload': message}
+            //     case 'homekit':
+            //         if (node.homekitFormat == "speaker") {
+            //             return {"payload": {
+            //                 "CurrentMediaState": (message.playing) ? 0 : 1,
+            //                 "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
+            //                     } 
+            //                 } 
+            //         }else if (node.homekitFormat == "tv") {
+            //                 return {"payload": {
+            //                     "Active": (message.playing) ? 1 : 0
+            //             } }
+            //         }
+
+                
+            // }
+
+
         }
         function sendMessage(message){
+        //debugMessage(JSON.stringify(message));
             if (node.uniqueFlag && node.output == 'homekit') {
                 if ((JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload))) {
                     node.send(message)
                     node.lastMessage = message
-                    debugMessage(`Sended message to HK: ${message}`);     
+                    debugMessage(`Sended message to HK: ${JSON.stringify(message)}`);     
                 
                 }
             } else {
@@ -44,7 +81,7 @@ module.exports = function(RED) {
             }
         }
         node.onMessage = function(data){
-            //debugMessage('input message');
+            //debugMessage(JSON.stringify(data));
             sendMessage(preparePayload(data));
         }
         node.onStatus = function(data) {

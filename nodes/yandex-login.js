@@ -173,7 +173,13 @@ module.exports = function(RED) {
 
         
         function connect(device) {
-            
+            debugMessage('Drop current connection...');
+            if (device.ws) {
+                if (device.ws.readyState != 3 ) {
+                    device.ws.terminate()
+                    debugMessage('terminated!');
+                }
+            }
             debugMessage('recieve conversation token...');
             getLocalToken(device)
             .then(() => {
@@ -258,10 +264,11 @@ module.exports = function(RED) {
             device.ws.on('error', function error(data){
                 //statusUpdate({"color": "red", "text": "disconnected"}, device);
                 debugMessage(`error: ${data}`);
-                if (device.localConnectionFlag) {
-                    //debugMessage(`Reconnecting in 10 seconds...` );
-                    //setTimeout(connect, 10000, device);
-                }
+                device.ws.terminate();
+                // if (device.localConnectionFlag) {
+                //     debugMessage(`Reconnecting in 60 seconds...` );
+                //     setTimeout(connect, 60000, device);
+                // }
             });
 
             
@@ -319,7 +326,7 @@ module.exports = function(RED) {
                     let result =[];
                     if (message.stopListening) {device.waitForListening = true}
                     if (message.pauseMusic && device.lastState.playing) {
-                        messageConstructor('command', {payload: 'stop'}).forEach(item => result.push(item))
+                        messageConstructor('command', {'payload': 'stop'}).forEach(item => result.push(item))
                        device.playAfterTTS = true
                         }
                     if (!message.volume){
@@ -345,9 +352,10 @@ module.exports = function(RED) {
                     if (message.hap.context != undefined) {
                         switch(JSON.stringify(message.payload)){
                             case '{"TargetMediaState":1}': 
-                                return messageConstructor('command', {payload: 'stop'})
-                                break;
+                            case '{"Active":0}':
+                                return messageConstructor('command', {'payload': 'stop'})
                             case '{"TargetMediaState":0}':
+                            case '{"Active":1}':
                                 if (device.lastState.playerState.title != "" && !device.playAfterTTS){
                                     return messageConstructor('command', {'payload': 'play'})
                                 } else if (message.noTrackPhrase && !device.playAfterTTS) {
@@ -355,8 +363,22 @@ module.exports = function(RED) {
                                 } else {
                                     return messageConstructor('command', {'payload': 'ping'})
                                 }
-
-                                break;
+                            case '{"RemoteKey":7}':
+                                return messageConstructor('command', {'payload': 'forward'}, device)
+                            case '{"RemoteKey":6}':
+                                return messageConstructor('command', {'payload': 'backward'}, device)
+                            case '{"RemoteKey":4}':
+                                return messageConstructor('command', {'payload': 'next'})
+                            case '{"RemoteKey":5}':
+                                return messageConstructor('command', {'payload': 'prev'})
+                            case '{"RemoteKey":11}':
+                                if (typeof device.lastState.playing !== "undefined") {
+                                    if (device.lastState.playing){
+                                        return messageConstructor('command', {'payload': 'stop'})
+                                    } else {
+                                        return messageConstructor('command', {'payload': 'play'})
+                                    }
+                                }
                             default:
                                 debugMessage('unknown command')
                                 return messageConstructor('command', {'payload': 'ping'})
@@ -381,7 +403,7 @@ module.exports = function(RED) {
         function sendMessage(deviceId, messageType, message) {
             let device = searchDeviceByID(deviceId);
             //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
-            debugMessage(`WS.STATE: ${device.ws.readyState} recive ${messageType} with ${JSON.stringify(message)}`);
+            debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recive ${messageType} with ${JSON.stringify(message)}`);
             if (device.ws.readyState == 1){
 
                     for (let m of messageConstructor(messageType, message, device)) {
