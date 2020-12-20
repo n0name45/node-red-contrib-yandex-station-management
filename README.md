@@ -27,16 +27,39 @@
     npm i node-red-contrib-yandex-station-management
 
 ## Первоначальная настройка.
-После установки для начала работы добавить любую ноду, ввести учетные данные(токен) в раздел Login, сохранить и нажать Deploy(обязательно!). Как получить токен - написано в FAQ. Галка "Connect by IP" нужна, если подключние не происходит по имени устройства, например, если Node-Red работает в докере. С докером работа протестирована  в настройке сети [hosted mode](https://docs.docker.com/network/host/)
+После установки для начала работы добавить любую ноду, ввести учетные данные(токен) в раздел Login, сохранить и нажать Deploy(обязательно!). Как получить токен - написано в FAQ. Галка "Connect by IP" нужна, если подключние не происходит по имени устройства, например, если Node-Red работает в докере. С докером работа протестирована  в настройке сети [hosted mode](https://docs.docker.com/network/host/).
+
 После деплоя в настройках ноды в поле Station должны появиться станции доступные для управления. Если станция не появилась в списке, то можно подождать пару минут или перезапустить Node-Red.
 
 ## Описание возможностей и сценариев использования.
 ### Нода IN.
 Ставится на старте flow и автоматически отправляет данные о текущем статусе колонки в "сыром" формате и Homekit. 
-#### Full status Message
+#### Full status Message("сырой" формат)
 Выдает данные без преобразования, то есть в том виде, в каком они получены от устройсва. Структура сообщения:
 ```json
-{"aliceState":"IDLE","canStop":false,"hdmi":{"capable":true,"present":false},"playerState":{"duration":180.91,"extra":{"coverURI":"avatars.yandex.net/get-music-content/2383988/de45408f.a.9039208-1/%%","stateType":"music"},"hasNext":true,"hasPause":false,"hasPlay":false,"hasPrev":true,"hasProgressBar":true,"liveStreamText":"","progress":20,"showPlayer":true,"subtitle":"Крематорий","title":"Мусорный ветер"},"playing":false,"timeSinceLastVoiceActivity":30454,"volume":0} 
+    {"aliceState":"IDLE",
+    "canStop":false,
+    "hdmi":
+        {"capable":true,
+        "present":false},
+    "playerState":
+        {"duration":180.91,
+        "extra":
+            {"coverURI":"avatars.yandex.net/get-music-content/2383988/de45408f.a.9039208-1/%%",
+            "stateType":"music"},
+        "hasNext":true,
+        "hasPause":false,
+        "hasPlay":false,
+        "hasPrev":true,
+        "hasProgressBar":true,
+        "liveStreamText":"",
+        "progress":20,
+        "showPlayer":true,
+        "subtitle":"Крематорий",
+        "title":"Мусорный ветер"},
+        "playing":false,
+        "timeSinceLastVoiceActivity":30454,
+        "volume":0} 
 ```
 Сообщения от устройства могут приходить по несколько штук в секунду, поэтому стоит поставить штатную ноду RBE, чтобы фильтровать дубликаты по контенту(название трека(payload.playerState.title), имя исполнителя(payload.playerState.subtitle)).
 
