@@ -205,9 +205,11 @@
 Есть ряд способов управлением воспроизведения музыки на колонках.
 1. Из Node-Red. В ноду OUT в режиме Player Command надо отправлять в виде строки одну из команд: play, stop, next, prev, forward, backward. Примеры идут вместе с плагином!
 ![alt text](/readme_images/simpleControl.png "simple player")
-2. Из [ui-dashboard](https://flows.nodered.org/node/node-red-dashboard). Благодарю участников сообщества [Node-Red на sprut.ai](https://t.me/SprutAI_NodeRED)за подгтовку примеров. Если плагин с дашбордом не стоит, его надо поставить.
+2. Из [ui-dashboard](https://flows.nodered.org/node/node-red-dashboard). Благодарю участников сообщества [Node-Red на sprut.ai](https://t.me/SprutAI_NodeRED) за подгтовку примеров. Если плагин с [дашбордом](https://flows.nodered.org/node/node-red-dashboard) не стоит, его надо поставить.
 После этого имортировать пример из ноды и по адресу /ui найдутся элементы управления.
-Альтернативный вариант от сообщества расположен [тут](https://github.com/twocolors/node-red-dashboard-template/blob/main/alice.json)
+![alt text](/readme_images/dashboardPlayer.png "player")
+![alt text](/readme_images/dashboardPlayerFlow.png "player")
+Есть еще один вариант от сообщества расположен [тут](https://github.com/twocolors/node-red-dashboard-template/blob/main/alice.json)
 3. Из Homekit. IN и GET ноды имеют возможность выдачи сообщений в готовом для Homekit формате. 
 Можно самостоятельно подготовить сообщение к отправке в Homekit, а можно просто воспользоваться нужной настройкой внутри нод. Разумным будет установка галки Unique messages для IN-ноды, чтобы не заваливать Homekit одинаковыми сообщениями.
 
