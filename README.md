@@ -207,9 +207,17 @@
 ![alt text](/readme_images/simpleControl.png "simple player")
 2. Из [ui-dashboard](https://flows.nodered.org/node/node-red-dashboard). Благодарю участников сообщества [Node-Red на sprut.ai](https://t.me/SprutAI_NodeRED) за подгтовку примеров. Если плагин с [дашбордом](https://flows.nodered.org/node/node-red-dashboard) не стоит, его надо поставить.
 После этого имортировать пример из ноды и по адресу /ui найдутся элементы управления.
+
 ![alt text](/readme_images/dashboardPlayer.png "player")
 ![alt text](/readme_images/dashboardPlayerFlow.png "player")
-Есть еще один вариант от сообщества расположен [тут](https://github.com/twocolors/node-red-dashboard-template/blob/main/alice.json)
+
+Есть еще один вариант от сообщества, который надо самостоятельно импортировать [со страницы автора](https://github.com/twocolors/node-red-dashboard-template/blob/main/alice.json)
+
+Добавляется простым flow и выглядит отлично)
+
+![alt text](/readme_images/dashboardTemplate.png "player")
+![alt text](/readme_images/dashboardTemplateFlow.png "player")
+
 3. Из Homekit. IN и GET ноды имеют возможность выдачи сообщений в готовом для Homekit формате. 
 Можно самостоятельно подготовить сообщение к отправке в Homekit, а можно просто воспользоваться нужной настройкой внутри нод. Разумным будет установка галки Unique messages для IN-ноды, чтобы не заваливать Homekit одинаковыми сообщениями.
 
