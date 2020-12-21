@@ -17,6 +17,9 @@
             },
             output: {
                 required: true
+            },
+            homekitFormat: {
+                value: "speaker"
             }     
         },
         inputs:1,
@@ -41,7 +44,14 @@
                                   
                     });
                     
-                })
+                });
+                $('#node-input-output').on('change', function(type, value) {
+                    if ($(this).val() == 'homekit') {
+                        $('#node-homekitFormat').show();
+                    } else {
+                        $('#node-homekitFormat').hide();
+                    }
+                });
      
             }  
 </script>
@@ -79,6 +89,17 @@
                 <select id="node-input-output" data-single="true" style="width: 100%">
                     <option value="status">Full status Message</option>
                     <option value="homekit">HomeKit formatted</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="form-row" id="node-homekitFormat">
+        <label for="node-input-homekitFormat"><i class="fa fa-arrow-circle-o-left">Homekit Format</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 0px;">
+                <select id="node-input-homekitFormat" data-single="true" style="width: 100%">
+                    <option value="speaker">Smart Speaker</option>
+                    <option value="tv">Television</option>
                 </select>
             </div>
         </div>

@@ -1,0 +1,202 @@
+[
+    {
+        "id": "ae78dd0c.2d2f28",
+        "type": "inject",
+        "z": "1ec311de.706db6",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "stop",
+        "payloadType": "str",
+        "x": 190,
+        "y": 220,
+        "wires": [
+            [
+                "2bda0aea.7ed0d6"
+            ]
+        ]
+    },
+    {
+        "id": "a4b91737.f22a7",
+        "type": "inject",
+        "z": "1ec311de.706db6",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "play",
+        "payloadType": "str",
+        "x": 188,
+        "y": 260,
+        "wires": [
+            [
+                "2bda0aea.7ed0d6"
+            ]
+        ]
+    },
+    {
+        "id": "7c6a1f34.91841",
+        "type": "inject",
+        "z": "1ec311de.706db6",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "next",
+        "payloadType": "str",
+        "x": 200,
+        "y": 300,
+        "wires": [
+            [
+                "2bda0aea.7ed0d6"
+            ]
+        ]
+    },
+    {
+        "id": "3d36bd70.44952a",
+        "type": "inject",
+        "z": "1ec311de.706db6",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "prev",
+        "payloadType": "str",
+        "x": 200,
+        "y": 340,
+        "wires": [
+            [
+                "2bda0aea.7ed0d6"
+            ]
+        ]
+    },
+    {
+        "id": "2bda0aea.7ed0d6",
+        "type": "alice-local-out",
+        "z": "1ec311de.706db6",
+        "name": "Player Command",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "",
+        "debugFlag": true,
+        "input": "command",
+        "volume": "0.5",
+        "volumeFlag": false,
+        "stopListening": true,
+        "pauseMusic": false,
+        "noTrack": "",
+        "x": 480,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "363f410b.984f46",
+        "type": "inject",
+        "z": "1ec311de.706db6",
+        "name": "forward",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "forward",
+        "payloadType": "str",
+        "x": 180,
+        "y": 180,
+        "wires": [
+            [
+                "2bda0aea.7ed0d6"
+            ]
+        ]
+    },
+    {
+        "id": "9783d2c4.8cd9b8",
+        "type": "inject",
+        "z": "1ec311de.706db6",
+        "name": "backward",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "backward",
+        "payloadType": "str",
+        "x": 200,
+        "y": 380,
+        "wires": [
+            [
+                "2bda0aea.7ed0d6"
+            ]
+        ]
+    },
+    {
+        "id": "c40e1b9d.adb7b8",
+        "type": "yandex-login",
+        "z": "",
+        "name": "",
+        "ipConnect": false,
+        "debugFlag": true
+    }
+]

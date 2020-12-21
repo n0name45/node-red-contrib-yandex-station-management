@@ -6,6 +6,7 @@ module.exports = function(RED) {
         node.output = config.output;
         node.debugFlag = config.debugFlag;
         node.station = config.station_id;
+        node.homekitFormat = config.homekitFormat;
         node.lastState = {};
         node.status({});
 
@@ -16,16 +17,22 @@ module.exports = function(RED) {
             }
         }
         function preparePayload(message){
-            switch(node.output){
-                case 'status':
-                    return {'payload': message}
-                case 'homekit':
-                        return {'payload': {
-                            "CurrentMediaState": (message.playing) ? 0 : 1,
-                            "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
-                        } }
-                };
+            if (node.output == 'status') {
+                return {'payload': message}
+            } else {
+                if (node.homekitFormat == 'speaker') {
+                    return {'payload': {
+                        "CurrentMediaState": (message.playing) ? 0 : 1,
+                        "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
+                    } } 
+                } else {
+                    return {'payload': {
+                        "Active": (message.playing) ? 1 : 0
+                        } 
+                    } 
+                }
             }
+        }
         
 
         node.onStatus = function(data) {
@@ -34,7 +41,7 @@ module.exports = function(RED) {
          }
         node.onInput = function(){
             debugMessage('input message');
-            node.send(preparePayload(node.lastState));
+            ( 'aliceState' in node.lastState )?node.send(preparePayload(node.lastState)):node.send({'payload': {}})
         }
         node.onMessage = function(message){
             node.lastState = message;
