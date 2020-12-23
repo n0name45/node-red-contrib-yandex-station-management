@@ -1,0 +1,91 @@
+﻿[
+    {
+        "id": "886566e0.14d028",
+        "type": "alice-local-in",
+        "z": "db340c31.a57b7",
+        "g": "7032d1a2.d6927",
+        "name": "IN",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "",
+        "uniqueFlag": false,
+        "debugFlag": false,
+        "output": "status",
+        "x": 190,
+        "y": 400,
+        "wires": [
+            [
+                "cc32efa.f029a1",
+                "ba142e5d.b2fcf"
+            ]
+        ]
+    },
+    {
+        "id": "ba142e5d.b2fcf",
+        "type": "ui_template",
+        "z": "db340c31.a57b7",
+        "g": "7032d1a2.d6927",
+        "group": "e0dde9d5.cf3d28",
+        "name": "Player",
+        "order": 2,
+        "width": "9",
+        "height": "4",
+        "format": "<div class=\"yandex-player\" id=\"app-cover\">\n    <div id=\"player\">\n        <div id=\"player-track\">\n            <div id=\"album-name\" class=\"fade\"></div>\n            <div id=\"track-name\" class=\"fade\"></div>\n            <div id=\"track-time\">\n                <div id=\"current-time\"></div>\n                <div id=\"track-length\"></div>\n            </div>\n            <div id=\"s-area\">\n                <div id=\"ins-time\"></div>\n                <div id=\"s-hover\"></div>\n                <div id=\"seek-bar\"></div>\n            </div>\n        </div>\n        <div id=\"player-content\">\n            <div id=\"album-art\">\n                <img src=\"//avatars.mds.yandex.net/get-music-misc/29541/img.5e6a1c5b38be6e3bae26558a/300x300\" class=\"active\" id=\"_1\">\n                <div id=\"buffer-box\">Загрузка ...</div>\n            </div>\n            <div id=\"player-controls\">\n                <div class=\"control\">\n                    <div class=\"button\" id=\"play-previous\">\n                        <i class=\"fa fa-backward\"></i>\n                    </div>\n                </div>\n                <div class=\"control\">\n                    <div class=\"button\" id=\"play-pause-button\">\n                        <i class=\"fa\"></i>\n                    </div>\n                </div>\n                <div class=\"control\">\n                    <div class=\"button\" id=\"play-next\">\n                        <i class=\"fa fa-forward\"></i>\n                    </div>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n\n\n\n<script>\nvar currentTrack = null;\nvar flagSeekBar = null;\nvar playerTrack = $(\"#player-track\"), bgArtwork = $('#bg-artwork'), bgArtworkUrl, albumName = $('#album-name'), trackName = $('#track-name'), albumArt = $('#album-art'), sArea = $('#s-area'), seekBar = $('#seek-bar'), trackTime = $('#track-time'), insTime = $('#ins-time'), sHover = $('#s-hover'), playPauseButton = $(\"#play-pause-button\"),  i = playPauseButton.find('i'), tProgress = $('#current-time'), tTime = $('#track-length'), seekT, seekLoc, seekBarPos, cM, ctMinutes, ctSeconds, curMinutes, curSeconds, durMinutes, durSeconds, playProgress, bTime, nTime = 0, buffInterval = null, tFlag = false, albums = ['Dawn','Me & You','Electro Boy','Home','Proxy (Original Mix)'], trackNames = ['Skylike - Dawn','Alex Skrindo - Me & You','Kaaze - Electro Boy','Jordan Schor - Home','Martin Garrix - Proxy'], albumArtworks = ['_1','_2','_3','_4','_5'], trackUrl = ['https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/2.mp3','https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/1.mp3','https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/3.mp3','https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/4.mp3','https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/5.mp3'], playPreviousTrackButton = $('#play-previous'), playNextTrackButton = $('#play-next'), currIndex = -1;\nvar that = scope;\n\n(function(scope) {\n    \n    initPlayer();\n    \n    function initPlayer() {\t\n\t\t$('#s-area').mousemove(function(event){ showHover(event); })\n            \t\t.mouseout(hideHover)\n            \t\t.on('click',playFromClickedPos);\n            \t\t\n\t\t$('#play-pause-button').on('click',function(){\n            scope.send({\"payload\":{\"command\":scope.msg.payload.playing?\"stop\":\"play\"}});\n\t\t});\n\t\t$('#play-previous').on('click',function(){\n\t\t    preloader(true);\n\t\t    scope.send({'payload':{'command':'prev'}});\n\t\t});\n\t\t$('#play-next').on('click',function(){\n\t\t    preloader(true);\n\t\t    scope.send({'payload':{'command':'next'}});\n\t\t});\n\t\t\n\t}\n    function showHover(event)\n\t{\n\t\tseekBarPos = sArea.offset(); \n\t\tseekT = event.clientX - seekBarPos.left;\n\t\tseekLoc = scope.msg.payload.playerState.duration * (seekT / sArea.outerWidth());\n\t\t\n\t\tsHover.width(seekT);\n\t\t\n\t\tcM = seekLoc / 60;\n\t\t\n\t\tctMinutes = Math.floor(cM);\n\t\tctSeconds = Math.floor(seekLoc - ctMinutes * 60);\n\t\t\n\t\tif( (ctMinutes < 0) || (ctSeconds < 0) )\n\t\t\treturn;\n\t\t\n        if( (ctMinutes < 0) || (ctSeconds < 0) )\n\t\t\treturn;\n\t\t\n\t\tif(ctMinutes < 10)\n\t\t\tctMinutes = '0'+ctMinutes;\n\t\tif(ctSeconds < 10)\n\t\t\tctSeconds = '0'+ctSeconds;\n        \n        if( isNaN(ctMinutes) || isNaN(ctSeconds) )\n            insTime.text('--:--');\n        else\n\t\t    insTime.text(ctMinutes+':'+ctSeconds);\n            \n\t\tinsTime.css({'left':seekT,'margin-left':'-21px'}).fadeIn(0);\n\t\t\n\t}\n\n    function hideHover(){\n        sHover.width(0);\n        insTime.text('00:00').css({'left':'0px','margin-left':'0px'}).fadeOut(0);\t\t\n    }\n    \n    function playFromClickedPos(){\n        preloader(true);\n        flagSeekBar = Math.round(seekLoc);\n\t\tseekBar.width(seekT);\n\t\thideHover();\n\t\tscope.send({\"payload\": {\"command\": \"rewind\", \"position\": Math.round(seekLoc) }})\n    }\n    \n    function preloader(flag){\n        if (flag && !albumArt.hasClass('buffering')) albumArt.addClass('buffering');\n        else if (!flag && albumArt.hasClass('buffering')) albumArt.removeClass('buffering');\n    }\n    \n\t\n\t\n    scope.$watch('msg', function(msg) {\n    if (msg) {\n        if (msg.payload.playing === true || msg.payload.playing === false) {\n    \t    $('#player-track, #album-art').toggleClass('active', msg.payload.playing);\n    \t    $('#play-pause-button .fa').toggleClass('fa-pause', msg.payload.playing).toggleClass('fa-play', !msg.payload.playing);\n        }\n    \t\n        if (\"playerState\" in msg.payload) {\n            //update title\n            $('#album-name').text(msg.payload.playerState.title);\n            $('#track-name').text(msg.payload.playerState.subtitle);\n                \n            //update time\n            if (flagSeekBar && msg.payload.playerState.progress >= flagSeekBar) {\n                preloader(false);\n                flagSeekBar = null;\n            }\n            if (!flagSeekBar) {\n                updateCurrTime(msg);\n            }\n        \n            //update img\n            var thumb = \"avatars.mds.yandex.net/get-music-misc/29541/img.5e6a1c5b38be6e3bae26558a/%%\";\n            if (msg.payload.playerState.extra !== null && typeof msg.payload.playerState.extra.coverURI !== \"undefined\") {\n              thumb = msg.payload.playerState.extra.coverURI;\n            }\n            thumb = '//'+thumb.replace(/%%/g,\"300x300\");\n    \n            if (thumb!=$('#album-art img').attr('src')) {\n                preloader(true);\n                var objImage = new Image();\n                objImage.src=thumb;\n                objImage.onload = function() {\n                    $('#album-art img').attr('src', thumb);\n                    preloader(false);\n                }\n            }\n        }\n                    \n        \n      \n      function updateCurrTime(msg)\n\t  {\n        if (!scope.msg.payload.playing) return false;\n        \n        nTime = new Date();\n        nTime = nTime.getTime();\n\n        if(!tFlag) {\n            tFlag = true;\n            trackTime.addClass('active');\n        }\n\n\t\tcurMinutes = Math.floor(msg.payload.playerState.progress / 60);\n\t\tcurSeconds = Math.floor(msg.payload.playerState.progress - curMinutes * 60);\n\t\t\n\t\tdurMinutes = Math.floor(msg.payload.playerState.duration / 60);\n\t\tdurSeconds = Math.floor(msg.payload.playerState.duration - durMinutes * 60);\n\t\t\n\t\tplayProgress = (msg.payload.playerState.progress / msg.payload.playerState.duration) * 100;\n\t\t\n\t\tif(curMinutes < 10)\n\t\t\tcurMinutes = '0'+curMinutes;\n\t\tif(curSeconds < 10)\n\t\t\tcurSeconds = '0'+curSeconds;\n\t\t\n\t\tif(durMinutes < 10)\n\t\t\tdurMinutes = '0'+durMinutes;\n\t\tif(durSeconds < 10)\n\t\t\tdurSeconds = '0'+durSeconds;\n        \n        if( isNaN(curMinutes) || isNaN(curSeconds) )\n            tProgress.text('00:00');\n        else\n\t\t    tProgress.text(curMinutes+':'+curSeconds);\n        \n        if( isNaN(durMinutes) || isNaN(durSeconds) )\n            tTime.text('00:00');\n        else\n\t\t    tTime.text(durMinutes+':'+durSeconds);\n        \n        if( isNaN(curMinutes) || isNaN(curSeconds) || isNaN(durMinutes) || isNaN(durSeconds) )\n            trackTime.removeClass('active');\n        else\n            trackTime.addClass('active');\n\n        \n\t\tseekBar.width(playProgress+'%');\n\t\t\n\t\tif(playProgress == 100) {\n// \t\t\ti.attr('class','fa fa-play');\n// \t\t\tseekBar.width(0);\n            // tProgress.text('00:00');\n            preloader(true)\n\t\t}\n    }\n    }\n  });\n})(scope);\n</script>\n\n\n\n<style>\n#app-cover {\n  position: absolute;\n  top: 50%;\n  right: 0;\n  left: 0;\n  width: 430px;\n  height: 100px;\n  margin: -4px auto;\n}\n#player {\n  position: relative;\n  height: 100%;\n  z-index: 3;\n}\n#player-track {\n  position: absolute;\n  top: 0;\n  right: 15px;\n  left: 15px;\n  padding: 13px 20px 10px 165px;\n  background-color: #fff7f7;\n  border-radius: 15px 15px 0 0;\n  transition: 0.3s ease top;\n  z-index: 1;\n}\n#player-track.active {\n  top: -92px;\n}\n#album-name {\n  color: #54576f;\n  font-size: 17px;\n  font-weight: bold;\n}\n#track-name {\n  color: #acaebd;\n  font-size: 13px;\n  margin: 2px 0 13px 0;\n}\n#track-time {\n  height: 12px;\n  margin-bottom: 3px;\n  overflow: hidden;\n}\n#current-time {\n  float: left;\n}\n#track-length {\n  float: right;\n}\n#current-time, #track-length {\n  color: transparent;\n  font-size: 11px;\n  background-color: #ffe8ee;\n  border-radius: 10px;\n  transition: 0.3s ease all;\n}\n#track-time.active #current-time, #track-time.active #track-length {\n  color: #f86d92;\n  background-color: transparent;\n}\n#s-area, #seek-bar {\n  position: relative;\n  height: 4px;\n  border-radius: 4px;\n}\n#s-area {\n  background-color: #ffe8ee;\n  cursor: pointer;\n}\n\n#ins-time {\n  position: absolute;\n  top: -29px;\n  color: #fff;\n  font-size: 12px;\n  white-space: pre;\n  padding: 5px 6px;\n  border-radius: 4px;\n  display: none;\n}\n#s-hover {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  opacity: 0.2;\n  z-index: 2;\n}\n#ins-time, #s-hover {\n  background-color: #3b3d50;\n}\n#seek-bar {\n  content: '';\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  width: 0;\n  background-color: #fd6d94;\n  transition: 0.2s ease width;\n  z-index: 1;\n}\n#player-content {\n  position: relative;\n  height: 100%;\n  background-color: #fff;\n  box-shadow: 0 30px 80px #656565;\n  border-radius: 15px;\n  z-index: 2;\n}\n#album-art {\n  position: absolute;\n  top: -40px;\n  width: 120px;\n  height: 120px;\n  margin-left: 40px;\n  transform: rotateZ(0);\n  transition: 0.3s ease all;\n  box-shadow: 0 0 0 10px #fff;\n  border-radius: 50%;\n  overflow: hidden;\n}\n#album-art.active {\n  top: -60px;\n  box-shadow: 0 0 0 4px #fff7f7, 0 30px 50px -15px #afb7c1;\n}\n#album-art:before {\n  content: '';\n  position: absolute;\n  top: 50%;\n  right: 0;\n  left: 0;\n  width: 20px;\n  height: 20px;\n  margin: -10px auto 0 auto;\n  background-color: #d6dee7;\n  border-radius: 50%;\n  box-shadow: inset 0 0 0 2px #fff;\n  z-index: 2;\n}\n#album-art img {\n  display: block;\n  position: absolute;\n  top: -5%;\n  left: -5%;\n  width: 110%;\n  height: 110%;\n  opacity: 0;\n  z-index: -1;\n}\n#album-art img.active {\n  opacity: 1;\n  z-index: 1;\n}\n#album-art.active img.active {\n  z-index: 1;\n  animation: rotateAlbumArt 5s linear 0s infinite forwards;\n}\n@keyframes rotateAlbumArt {\n  0% {\n    transform: rotateZ(0);\n  }\n  100% {\n    transform: rotateZ(360deg);\n  }\n}\n#buffer-box {\n  position: absolute;\n  top: 50%;\n  right: 0;\n  left: 0;\n  height: 13px;\n  color: #1f1f1f;\n  font-size: 13px;\n  font-family: Helvetica;\n  text-align: center;\n  font-weight: bold;\n  line-height: 1;\n  padding: 6px;\n  margin: -12px auto 0 auto;\n  background-color: rgba(255, 255, 255, 0.19);\n  opacity: 0;\n  z-index: 2;\n}\n#album-art img, #buffer-box {\n  transition: 0.1s linear all;\n}\n#album-art.buffering img {\n  opacity: 0.25;\n}\n#album-art.buffering img.active {\n  opacity: 0.8;\n  filter: blur(2px);\n  -webkit-filter: blur(2px);\n}\n#album-art.buffering #buffer-box {\n  opacity: 1;\n}\n#player-controls {\n  width: 250px;\n  height: 100%;\n  margin: 0 5px 0 141px;\n  float: right;\n  overflow: hidden;\n}\n.control {\n  width: 33.333%;\n  float: left;\n  padding: 12px 0;\n}\n.button {\n  width: 26px;\n  height: 26px;\n  padding: 25px;\n  background-color: #fff;\n  border-radius: 6px;\n  cursor: pointer;\n}\n.button:focus{\n    outline: none;\n}\n.button i {\n  display: block;\n  color: #d6dee7;\n  font-size: 26px;\n  text-align: center;\n  line-height: 1;\n}\n.button, .button i {\n  transition: 0.2s ease all;\n}\n.button:hover {\n  background-color: #d6d6de;\n}\n.button:hover i {\n  color: #fff;\n}\n.fade {\n  width: 220px;\n  white-space: nowrap;\n  overflow: hidden;\n  display: inline-block;\n  text-overflow: ellipsis;\n  margin: 0;\n}\n</style>",
+        "storeOutMessages": true,
+        "fwdInMessages": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 330,
+        "y": 400,
+        "wires": [
+            [
+                "25606a94.97dde6",
+                "b7cda4c0.7c5828"
+            ]
+        ]
+    },
+    {
+        "id": "b7cda4c0.7c5828",
+        "type": "alice-local-out",
+        "z": "db340c31.a57b7",
+        "g": "7032d1a2.d6927",
+        "name": "raw command",
+        "token": "c40e1b9d.adb7b8",
+        "station_id": "",
+        "debugFlag": false,
+        "input": "raw",
+        "volume": "0.2",
+        "volumeFlag": true,
+        "stopListening": false,
+        "pauseMusic": true,
+        "noTrack": "",
+        "x": 660,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "c40e1b9d.adb7b8",
+        "type": "yandex-login",
+        "name": "Yandex",
+        "ipConnect": false,
+        "debugFlag": true
+    },
+    {
+        "id": "e0dde9d5.cf3d28",
+        "type": "ui_group",
+        "name": "Плеер",
+        "tab": "a3c95ca4.6c156",
+        "order": 1,
+        "disp": false,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "a3c95ca4.6c156",
+        "type": "ui_tab",
+        "name": "Алиса",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
