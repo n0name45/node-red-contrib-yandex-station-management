@@ -173,22 +173,30 @@ module.exports = function(RED) {
 
         
         function connect(device) {
-            debugMessage('Drop current connection...');
-            if (device.ws) {
-                if (device.ws.readyState != 3 ) {
-                    device.ws.terminate()
-                    debugMessage('terminated!');
+            //connect only if !device.ws
+            //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
+            if (!device.ws) {
+                debugMessage('recieving conversation token...');
+                getLocalToken(device)
+                .then(() => {
+                    makeConn(device)
+                })
+                .catch(function (err) {
+                    debugMessage('Error while getting token: ' + err);
+    
+                  });
+            } else {
+                if (device.ws.readyState == 3) {
+                    debugMessage(`ws.state: ${device.ws.readyState}`);
+                    device.ws = undefined;
+                    connect(device);
+                } else {
+                    debugMessage('cannot reconnect... Try in 60 seconds')
+                    setTimeout(connect, 60000, device);
+
                 }
             }
-            debugMessage('recieve conversation token...');
-            getLocalToken(device)
-            .then(() => {
-                makeConn(device)
-            })
-            .catch(function (err) {
-                debugMessage('Error while getting token: ' + err);
 
-              });
         }
         
         async function makeConn(device) {
@@ -403,7 +411,7 @@ module.exports = function(RED) {
         function sendMessage(deviceId, messageType, message) {
             let device = searchDeviceByID(deviceId);
             //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
-            debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recive ${messageType} with ${JSON.stringify(message)}`);
+            debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
             if (device.ws.readyState == 1){
 
                     for (let m of messageConstructor(messageType, message, device)) {
