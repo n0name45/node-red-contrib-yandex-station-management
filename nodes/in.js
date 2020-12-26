@@ -22,49 +22,26 @@ module.exports = function(RED) {
 
 
         function preparePayload(message){
-            // switch(node.output){
-            //     case 'status':
-            //         return {'payload': message}
-            //     case 'homekit':
-            //         return {'payload': {
-            //             "CurrentMediaState": (message.playing) ? 0 : 1,
-            //             "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
-            //         } }
-            // }
+            let payload = {};
             if (node.output == 'status') {
-                    return {'payload': message}
-            } else {
+                   payload = {'payload': message}
+            } else if (node.output == 'homekit') {
                 if (node.homekitFormat == 'speaker') {
-                    return {'payload': {
+                    (message.playerState)? payload = {'payload': {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
                         "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
-                    } } 
-                }else {
-                    return {'payload': {
+                    } }:payload = {'payload': {
+                        "CurrentMediaState": (message.playing) ? 0 : 1,
+                        "ConfiguredName": `No Artists - No Track`
+                    } }
+                }else if (node.homekitFormat == 'tv') {
+                    payload = {'payload': {
                         "Active": (message.playing) ? 1 : 0
-                         } 
+                    } 
                     } 
                 }
             }
-
-            //     case 'status':
-            //         return {'payload': message}
-            //     case 'homekit':
-            //         if (node.homekitFormat == "speaker") {
-            //             return {"payload": {
-            //                 "CurrentMediaState": (message.playing) ? 0 : 1,
-            //                 "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
-            //                     } 
-            //                 } 
-            //         }else if (node.homekitFormat == "tv") {
-            //                 return {"payload": {
-            //                     "Active": (message.playing) ? 1 : 0
-            //             } }
-            //         }
-
-                
-            // }
-
+        return payload;
 
         }
         function sendMessage(message){

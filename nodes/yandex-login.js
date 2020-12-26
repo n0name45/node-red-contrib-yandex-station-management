@@ -364,7 +364,9 @@ module.exports = function(RED) {
                                 return messageConstructor('command', {'payload': 'stop'})
                             case '{"TargetMediaState":0}':
                             case '{"Active":1}':
-                                if (device.lastState.playerState.title != "" && !device.playAfterTTS){
+                                if (!device.lastState.playerState && !device.playAfterTTS && message.noTrackPhrase) {
+                                    return messageConstructor('voice', {'payload': message.noTrackPhrase})
+                                } else if (device.lastState.playerState.title != "" && !device.playAfterTTS){
                                     return messageConstructor('command', {'payload': 'play'})
                                 } else if (message.noTrackPhrase && !device.playAfterTTS) {
                                     return messageConstructor('voice', {'payload': message.noTrackPhrase})
