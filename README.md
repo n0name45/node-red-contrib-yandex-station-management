@@ -273,8 +273,8 @@ A: В меню Node-Red есть пункт Import, а в нем раздел Ex
 ## ENG
 ## Node-Red integration with Yandex Devices through websocket:
     - Yandex Station(tested)
-    - Yandex Mini(not tested)
-    - Yandex Station Max(not tested)
+    - Yandex Mini( tested)
+    - Yandex Station Max( tested)
     - Yandex Module(not tested)
 
 ## Installation 
