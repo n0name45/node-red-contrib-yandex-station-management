@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-yandex-station-management",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Local management of YandexStation using API on websockets",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,8 @@
             "alice-local-in": "nodes/in.js",
             "alice-local-get": "nodes/get.js",
             "alice-local-out": "nodes/local-out.js",
-            "yandex-login": "nodes/yandex-login.js"
+            "yandex-login": "nodes/yandex-login.js",
+            "alice-local-station": "nodes/station.js"
 
         }
     },

@@ -1,0 +1,72 @@
+<script type="text/javascript">
+    
+    RED.nodes.registerType('alice-local-station',{
+        category: 'Yandex Station',
+        color: '#b89fcc',
+        defaults: {
+            name:{value: ""},
+            token: {
+                type: "yandex-login",
+                required: true
+            },
+            station_id: {
+                required: true
+            },
+            debugFlag: {
+                value: false
+            }
+        },
+        inputs:0,
+        outputs:0,
+        icon: "station.png",
+        label: function() {
+            return this.name||this.station_id
+        },
+        oneditprepare: onOpen
+    });
+    function onOpen() {
+        let config = RED.nodes.node($('#node-input-token').val());
+        let selector = $('#node-input-station_id');
+        selector.empty();
+        let currentId = this.station_id;
+        $.getJSON('yandexdevices_'+config.id,function(data) {
+            data.devices.forEach(device => {
+            selector.append(`<option value="${device.id}"> 
+            ${device.name}(${device.id})
+             </option>`)
+             $(`#node-input-station_id :contains(${currentId})`).attr("selected", "selected"); 
+            });
+        });
+        
+    }
+</script>
+<script type="text/html" data-template-name="alice-local-station">
+    <style>
+        .label-long {min-width: 150px;width: 20%;}
+        .online {display: inline-block; width: auto; vertical-align: middle;}
+    </style> 
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-bookmark"></i>Name</label>
+        <input type="text" id="node-input-name" placeholder="">
+    </div>
+    <div class="form-row">
+        <label for="node-input-token"><i class="fa fa-globe"></i>Login</label>
+        <input type="text" id="node-input-token" placeholder="token">
+    </div>
+    <div class="form-row">
+        <label for="node-input-station_id"><i class="fa fa-database">Station</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 40px;">
+                <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
+            </div>        
+            <div style="text-align: end; display: inline; float: right">
+                <button onclick="onOpen()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="alice-local-station">
+    <p> Station node for Yandex Station local management</p>
+</script>
