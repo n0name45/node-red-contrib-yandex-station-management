@@ -484,8 +484,11 @@ module.exports = function(RED) {
         node.on('close', onClose)
         
         // main init
-        getDevices(node.token);
-        node.interval = setInterval(getDevices, 60000, node.token);
+        if (typeof(node.token) != 'undefined') {
+            getDevices(node.token);
+            node.interval = setInterval(getDevices, 60000, node.token);
+        }
+
 
     }
 
