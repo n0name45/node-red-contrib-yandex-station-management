@@ -10,6 +10,8 @@ module.exports = function(RED) {
         node.token = this.credentials.token;
         node.getStatus = getStatus;
         node.sendMessage = sendMessage;
+        node.registerDevice = registerDevice;
+        node.unregisterDevice = unregisterDevice;
         node.debugFlag = config.debugFlag;
         node.ipConnect = config.ipConnect;
         node.deviceList = [];
@@ -21,7 +23,7 @@ module.exports = function(RED) {
         node.on('stopListening', onStopListening);
         node.on('startPlay', onStartPlay)
         node.on('deviceReady', onDeviceReady);
-        node.setMaxListeners(50)
+        node.setMaxListeners(0)
         
         function debugMessage(text){
             if (node.debugFlag) {
@@ -222,6 +224,7 @@ module.exports = function(RED) {
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
             });
             device.ws.on('message', function incoming(data) {
+                //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 device.lastState = JSON.parse(data).state; 
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
@@ -433,7 +436,9 @@ module.exports = function(RED) {
         }
         
         function searchDeviceByID(id) {
-            return node.deviceList.find(device => device.id == id)
+            if (node.deviceList) {
+                return node.deviceList.find(device => device.id == id)
+            }   
         }
         
         function getStatus(id) {
@@ -459,6 +464,36 @@ module.exports = function(RED) {
             }
         }
 
+        function registerDevice(deviceId, nodeId) {
+            let device = searchDeviceByID(deviceId);
+            if (device) {
+                if (device.manager == nodeId) {
+                    return 1;              
+                }
+                if (typeof(device.manager) == 'undefined') {
+                    device.manager = nodeId;
+                    debugMessage(`For device ${deviceId} was succesfully registred managment node whith id ${device.manager}`)
+                    return 0;
+                }
+                if (device.manager != nodeId) {
+                    debugMessage(`For device ${deviceId} there is already registrated managment node whith id ${device.manager}`)
+                    return 2;
+                }
+            }
+
+        }
+        function unregisterDevice(deviceId, nodeId){
+            let device = searchDeviceByID(deviceId);
+            if (device) {
+                if (device.manager == nodeId) {
+                    device.manager = undefined;
+                    debugMessage(`For device ${deviceId} was succesfully unregistred managment node whith id ${device.manager}`)
+                    return 0;              
+                } else {
+                    return 2;
+                }
+            }
+        }
 
         function onStopListening(device) {
             sendMessage(device.id, 'stopListening');
@@ -475,6 +510,13 @@ module.exports = function(RED) {
             node.deviceList = [];
             node.removeListener('deviceReady', onDeviceReady)
         }
+
+        function onFixAddr(data) {
+            if (data) {
+                let device = searchDeviceByID(data.id);
+                device.fixedaeddress = data.address;
+            }
+        }
         
         node.on('refreshHttp', function(data) {
             RED.httpAdmin.get("/yandexdevices_"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
@@ -482,6 +524,15 @@ module.exports = function(RED) {
             });
         });
         node.on('close', onClose)
+
+
+        //API for station node
+        RED.httpAdmin.post("/station/" + node.id + "/fixaddress", RED.auth.needsPermission('yandex-login.write'), function(req, res) {
+            debugMessage(JSON.stringify(req.body));
+            onFixAddr(req.body);
+            res.json({ status: 'success' });
+        });
+
         
         // main init
         if (typeof(node.token) != 'undefined') {
