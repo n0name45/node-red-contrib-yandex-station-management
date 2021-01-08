@@ -52,18 +52,54 @@
         oneditprepare: onOpen,
         oneditsave: onSave
     });
-    function onOpen() {
+    function onRefresh() {
         let config = RED.nodes.node($('#node-input-token').val());
         let selector = $('#node-input-station_id');
+        let currentId = selector.data('station_id');
+        console.log(currentId);
+        
         selector.empty();
-        let currentId = this.station_id;
         $.getJSON('yandexdevices_'+config.id,function(data) {
             data.devices.forEach(device => {
             selector.append(`<option value="${device.id}"> 
             ${device.name}(${device.id})
              </option>`)
-             $(`#node-input-station_id :contains(${currentId})`).attr("selected", "selected"); 
+             $(`#node-input-station_id option[value=${currentId}]`).attr("selected", true); 
+             (currentId == device.id && device.address)?$("#node-input-fixedAddress").attr("placeholder", device.address):$("#node-input-fixedAddress").attr("placeholder", "0.0.0.0");
+             (currentId == device.id && device.port)?$("#node-input-fixedPort").attr("placeholder", device.port):$("#node-input-fixedPort").attr("placeholder", "1961");
             });
+        });
+    }
+    function onOpen() {
+        let config = RED.nodes.node($('#node-input-token').val());
+        let selector = $('#node-input-station_id');
+        selector.empty();
+        console.log(this);
+        let currentId = this.station_id;
+        //костыль для сохранения данных из рантайма
+        selector.data('station_id', currentId);
+        //let deviceList = $.getJSON('yandexdevices_'+config.id)
+        $.getJSON('yandexdevices_'+config.id,function(data) {
+            data.devices.forEach(device => {
+            selector.append(`<option value="${device.id}"> 
+            ${device.name}(${device.id})
+             </option>`)
+             $(`#node-input-station_id :contains(${currentId})`).attr("selected", true); 
+             (currentId == device.id && device.address)?$("#node-input-fixedAddress").attr("placeholder", device.address):$("#node-input-fixedAddress").attr("placeholder", "0.0.0.0");
+             (currentId == device.id && device.port)?$("#node-input-fixedPort").attr("placeholder", device.port):$("#node-input-fixedPort").attr("placeholder", "1961");
+            });
+        });
+        $('#node-input-station_id').on('change', function(type, value) {
+            let selectedId = $('#node-input-station_id').val();
+            //при открытии нет выбранного элемента
+            if (selectedId) {
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                    let device = data.devices.find(dev => dev.id == selectedId);
+                    $("#node-input-fixedAddress").attr("placeholder", device.address)
+                    $("#node-input-fixedPort").attr("placeholder", device.port)
+                 });
+            }
+
         });
         // заполняет массив временем с 00:00 до 24:00
         let times = {}
@@ -152,12 +188,28 @@
                 <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
             </div>        
             <div style="text-align: end; display: inline; float: right">
-                <button onclick="onOpen()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+                <button onclick="onRefresh()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
             </div>
         </div>
     </div>
+    <div>
+        <hr \>
+        <span style="font-weight: bold">Network</span>
+        <hr \>
+    </div>
     <div class="form-row">
-        <label >Day of week</label>
+        <label for="node-input-fixedAddress"><i class="fa fa-globe"></i>IP address</label>
+        <input type="text" id="node-input-fixedAddress" placeholder="0.0.0.0" style="width: 120px">
+        <span>:</span>
+        <input type="text" id="node-input-fixedPort" placeholder="1961" style="width: 50px">
+    </div>
+    <div>
+        <hr \>
+        <span style="font-weight: bold">Kid Control</span>
+        <hr \>
+    </div>
+    <div class="form-row" style="margin-top: 0px; font-weight: 500">
+        <label></label>
         <div style="display: inline-block;position: relative;width: 70%;">
             <span class="online" style="width:20%; text-align: center;">Active</span>
             <span class="online" style="width:38%; text-align: center;">From</span>
