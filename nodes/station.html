@@ -17,6 +17,13 @@
             },
             sheduler: {
                 value: []
+            },
+            network:{
+                value: {}
+            },
+            fixedAddress:{
+            },
+            fixedPort:{
             }
             
         },
@@ -142,6 +149,42 @@
 
         });
 
+        $(".status-button-group").on("click", function() {
+            $(".status-button-group").removeClass("selected");
+            $(this).addClass("selected");
+            
+        });
+
+        let currentMode = (this.network)?this.network.mode:"auto"
+
+        if (currentMode == "auto" || typeof(currentMode) == "undefined") {
+            $("#autoButton").addClass("selected");
+            $("#address-block").hide();
+        } else {
+            $("#manualButton").addClass("selected");
+            $("#address-block").show(); 
+        }
+        $(".ip-button-group").on("click", function() {
+            $(".ip-button-group").removeClass("selected");
+            $(this).addClass("selected");
+            let pressedbutton = $(this).attr("id");
+            if (pressedbutton == "autoButton") {
+                $("#address-block").hide()   
+            } else if (pressedbutton == "manualButton") {
+                $("#address-block").show()
+                let selectedId = $('#node-input-station_id').val();
+                //при открытии нет выбранного элемента
+                 if (selectedId) {
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                    let device = data.devices.find(dev => dev.id == selectedId);
+                    $("#node-input-fixedAddress").attr("placeholder", device.address)
+                    $("#node-input-fixedPort").attr("placeholder", device.port)
+                 });
+            }
+            }
+            
+        });
+
         
     }
     function onSave(){
@@ -161,7 +204,16 @@
             sheduler.push(shedDay);
         });
         this.sheduler = sheduler;
-    
+
+        let network = {};
+        if ($("#autoButton").hasClass("selected")) {
+            network.mode = "auto"
+        } else {
+            network.mode = "manual" 
+            network.address = $("#node-input-fixedAddress").val();
+            network.port = $("#node-input-fixedPort").val();
+        }
+        this.network = network;
     }
 
 
@@ -171,6 +223,7 @@
     <style>
         .label-long {min-width: 150px;width: 20%;}
         .online {display: inline-block; width: auto; vertical-align: middle;}
+        .thin {margin: 4px 0;}
     </style> 
 
     <div class="form-row">
@@ -193,20 +246,32 @@
         </div>
     </div>
     <div>
-        <hr \>
-        <span style="font-weight: bold">Network</span>
-        <hr \>
+        <span style="font-weight: bold; margin: 4px 0;"> Connection to device</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
+    </div>
+    <div class="form-row">
+        <span class="button-group">
+            <button type="button" id="buttonEnabled" class="red-ui-button toggle selected status-button-group">Enabled</button><button type="button" id="buttonDisabled" class="red-ui-button toggle status-button-group">Disabled</button>
+        </span>
+    </div>
+    <div>
+        <span style="font-weight: bold; margin: 4px 0;"> Network</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
     </div>
     <div class="form-row">
         <label for="node-input-fixedAddress"><i class="fa fa-globe"></i>IP address</label>
-        <input type="text" id="node-input-fixedAddress" placeholder="0.0.0.0" style="width: 120px">
-        <span>:</span>
-        <input type="text" id="node-input-fixedPort" placeholder="1961" style="width: 50px">
+        <span class="button-group">
+            <button type="button" id="autoButton" class="red-ui-button toggle ip-button-group">Auto</button><button type="button" id="manualButton" class="red-ui-button toggle ip-button-group">Manual</button>
+        </span>
+        <span id="address-block">
+            <input type="text" id="node-input-fixedAddress" placeholder="0.0.0.0" style="width: 120px">
+            <span>:</span>
+            <input type="text" id="node-input-fixedPort" placeholder="1961" style="width: 50px">
+        </span>
     </div>
     <div>
-        <hr \>
-        <span style="font-weight: bold">Kid Control</span>
-        <hr \>
+        <span style="font-weight: bold; margin: 4px 0;">Kid Control</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
     </div>
     <div class="form-row" style="margin-top: 0px; font-weight: 500">
         <label></label>

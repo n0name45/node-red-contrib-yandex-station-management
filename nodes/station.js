@@ -5,6 +5,9 @@ module.exports = function(RED) {
         node.controller = RED.nodes.getNode(config.token);
         node.station = config.station_id;
         node.sheduler = config.sheduler;
+        node.network = config.network;
+        node.fixedAddress = config.fixedAddress;
+        node.fixedPort = config.fixedPort;
         node.debugFlag = true;
         node.status({});
 
@@ -13,7 +16,9 @@ module.exports = function(RED) {
                 node.log(text);
             }
         }
-        //debugMessage(node.station);
+        debugMessage(JSON.stringify(node.network));
+        debugMessage(JSON.stringify(node.fixedAddress));
+        debugMessage(JSON.stringify(node.fixedPort));
         //debugMessage(`sheduler: ${if (node.sheduler) {node.sheduler.forEach( day => { debugMessage(JSON.stringify(day))} )}}`)
         node.onStatus = function(data) {
             (node.registration)?node.status({fill: data.color,shape:"dot",text: data.text}):node.status({fill: "red",shape:"dot",text: `not registered`})
@@ -30,6 +35,9 @@ module.exports = function(RED) {
             debugMessage(`Result is ${status}  ${typeof(status)}`);
 
             node.registration = (status != 2 && status != undefined)?true:false;
+
+            debugMessage(`Result is ${status}  ${typeof(status)} regstrationFlag: ${node.registration}`);
+           
         }
 
         node.on('close', () => {

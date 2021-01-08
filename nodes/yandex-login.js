@@ -443,7 +443,7 @@ module.exports = function(RED) {
         
         function getStatus(id) {
             let device = searchDeviceByID(id);
-            if (typeof(device) === 'object' && device.ws.readyState) {
+            if (typeof(device) === 'object' && (device.ws).hasOwnProperty("readyState") ) {
                 switch(device.ws.readyState){
                     case 0: 
                     return {"color": "yellow", "text": "connecting..."}
@@ -468,18 +468,23 @@ module.exports = function(RED) {
             let device = searchDeviceByID(deviceId);
             if (device) {
                 if (device.manager == nodeId) {
-                    return 1;              
+                    statusUpdate({"color": "green", "text": "registered"}, device);
+                    return 1;
+                                  
                 }
                 if (typeof(device.manager) == 'undefined') {
                     device.manager = nodeId;
                     debugMessage(`For device ${deviceId} was succesfully registred managment node whith id ${device.manager}`)
+                    statusUpdate({"color": "green", "text": "registered"}, device);
                     return 0;
                 }
                 if (device.manager != nodeId) {
                     debugMessage(`For device ${deviceId} there is already registrated managment node whith id ${device.manager}`)
+                    statusUpdate({"color": "red", "text": "not registered"}, device);
                     return 2;
                 }
             }
+            node.emit
 
         }
         function unregisterDevice(deviceId, nodeId){
