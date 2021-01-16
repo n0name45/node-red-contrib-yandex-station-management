@@ -15,6 +15,9 @@
             debugFlag: {
                 value: false
             },
+            connectionStatus: {
+                value: true
+            },
             sheduler: {
                 value: []
             },
@@ -24,6 +27,9 @@
             fixedAddress:{
             },
             fixedPort:{
+            },
+            phrase: {
+                value: ''
             }
             
         },
@@ -121,9 +127,10 @@
         let sheduler = this.sheduler || [];
         
         $('.sheduler-block').each(function(i, block) {
-            let activeFlag = (sheduler.length == 0)?true:sheduler[i].active
-            let startTime = (sheduler.length == 0)?'0':sheduler[i].from
-            let endTime = (sheduler.length == 0)?'1440':sheduler[i].to
+            let currentSheduler = (i == 6)?sheduler.find(el => el.dayNumber == 0):sheduler.find(el => el.dayNumber == i+1)
+            let activeFlag = (!currentSheduler)?true:currentSheduler.active
+            let startTime = (!currentSheduler)?'0':currentSheduler.from
+            let endTime = (!currentSheduler)?'1440':currentSheduler.to
             let checkbox = $(block).children().first()
             let fromSelect =  $(block).children('select').first()
             let toSelect = $(block).children('select').last()
@@ -137,7 +144,15 @@
             
             $(`#${fromSelect.attr('id')} option[value=${startTime}]`).attr("selected", true); 
             $(`#${toSelect.attr('id')} option[value=${endTime}]`).attr("selected", true); 
-            checkbox.on('change', function(type, value) {
+            //отключаем поле select если галка не стоит
+            if (checkbox.prop("checked")) {
+                $(fromSelect).prop('disabled', false)
+                $(toSelect).prop('disabled', false)
+            } else {
+                    $(fromSelect).prop('disabled', true)
+                    $(toSelect).prop('disabled', true)
+            }
+            $(checkbox).on('change', function(type, value) {
                 if (checkbox.prop("checked")) {
                     $(fromSelect).prop('disabled', false)
                     $(toSelect).prop('disabled', false)
@@ -198,9 +213,12 @@
             let activeFlag = checkbox.is(':checked');
             let startTime = (activeFlag)?fromSelect.val():'0';
             let endTime = (activeFlag)?toSelect.val():'1440';
+            let phrase = $('#node-input-phrase').val();
             shedDay.active = activeFlag;
             shedDay.from = startTime;
             shedDay.to = endTime;
+            shedDay.phrase = phrase;
+            (i == 6)?shedDay.dayNumber = 0:shedDay.dayNumber = i + 1;
             sheduler.push(shedDay);
         });
         this.sheduler = sheduler;
@@ -357,6 +375,10 @@
             <select class="time-selector" style="width:37%" id="node-input-sunday-stop">
             </select>
         </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-phrase"><i class="fa fa-comment"></i>Phrase to say</label>
+        <input type="text" id="node-input-phrase" placeholder="Я уже сплю">
     </div>
 </script>
 

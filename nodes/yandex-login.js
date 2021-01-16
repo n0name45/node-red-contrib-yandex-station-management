@@ -1,6 +1,7 @@
 var rp = require('request-promise');
 var mDnsSd = require('node-dns-sd');
 var WebSocket = require("ws");
+const { parse } = require('node-dns-sd/lib/dns-sd-parser');
 
 module.exports = function(RED) {
 
@@ -21,7 +22,8 @@ module.exports = function(RED) {
         
        
         node.on('stopListening', onStopListening);
-        node.on('startPlay', onStartPlay)
+        node.on('startPlay', onStartPlay);
+        node.on('stopPlay', onStopPlay);
         node.on('deviceReady', onDeviceReady);
         node.setMaxListeners(0)
         
@@ -226,9 +228,23 @@ module.exports = function(RED) {
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 device.lastState = JSON.parse(data).state; 
+                //debugMessage(checkSheduler(device, JSON.parse(data).sentTime));
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
                 if (device.lastState.aliceState == 'LISTENING' && device.playAfterTTS) {node.emit('startPlay', device)}
+                if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && device.parameters) {
+                    if (device.parameters.sheduler) {
+                        let res = checkSheduler(device, JSON.parse(data).sentTime)
+                        if (!res[0]) {    
+                            if (device.shedulerFlag || device.shedulerFlag == undefined) {
+                                node.emit('stopPlay', device, res[1])
+                                device.shedulerFlag  = false
+                                setTimeout(() => {device.shedulerFlag = true}, 1000)
+                            }
+                        }
+                    }
+
+                }
                 clearTimeout(device.watchDog);
                 device.watchDog = setTimeout(() => {
                 device.ws.close()}, 10000);
@@ -434,6 +450,21 @@ module.exports = function(RED) {
                 return 'Device offline'
             }
         }
+        function checkSheduler(device, timestamp) {
+            let sheduler = (device.parameters)?device.parameters.sheduler:[];
+            let date = new Date(timestamp);
+            let timeCurrent = date.getDay()*1000 + date.getHours()*60 + date.getMinutes();
+            let daySheduler = sheduler.find(el => el.dayNumber == date.getDay())
+            let timeMin = daySheduler.dayNumber*1000 + parseInt(daySheduler.from)
+            let timeMax = daySheduler.dayNumber*1000 + parseInt(daySheduler.to)
+            if (timeCurrent >= timeMin && timeCurrent < timeMax) {
+                debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
+                return [true];
+            } else {
+                debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
+                return [false, daySheduler.phrase];
+            }
+        }
         
         function searchDeviceByID(id) {
             if (node.deviceList) {
@@ -464,16 +495,18 @@ module.exports = function(RED) {
             }
         }
 
-        function registerDevice(deviceId, nodeId) {
+        function registerDevice(deviceId, nodeId, parameters) {
             let device = searchDeviceByID(deviceId);
             if (device) {
                 if (device.manager == nodeId) {
+                    device.parameters = parameters || {};
                     statusUpdate({"color": "green", "text": "registered"}, device);
                     return 1;
                                   
                 }
                 if (typeof(device.manager) == 'undefined') {
                     device.manager = nodeId;
+                    device.parameters = parameters || {};
                     debugMessage(`For device ${deviceId} was succesfully registred managment node whith id ${device.manager}`)
                     statusUpdate({"color": "green", "text": "registered"}, device);
                     return 0;
@@ -484,7 +517,7 @@ module.exports = function(RED) {
                     return 2;
                 }
             }
-            node.emit
+           
 
         }
         function unregisterDevice(deviceId, nodeId){
@@ -492,6 +525,7 @@ module.exports = function(RED) {
             if (device) {
                 if (device.manager == nodeId) {
                     device.manager = undefined;
+                    device.parameters = undefined;
                     debugMessage(`For device ${deviceId} was succesfully unregistred managment node whith id ${device.manager}`)
                     return 0;              
                 } else {
@@ -508,6 +542,10 @@ module.exports = function(RED) {
         function onStartPlay(device) {
             sendMessage(device.id, 'command', {payload: 'play'});
             device.playAfterTTS = false;
+        }
+        function onStopPlay(device, phrase) {
+            sendMessage(device.id, 'command', {payload: 'stop'});
+            if (phrase.length > 0 && device.lastState.aliceState != 'SPEAKING') {sendMessage(device.id, 'tts', {payload: phrase, stopListening: true});}
         }
         
         function onClose() {
