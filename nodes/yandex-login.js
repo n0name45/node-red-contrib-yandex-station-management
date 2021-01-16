@@ -495,6 +495,8 @@ module.exports = function(RED) {
             }
         }
 
+        let registrationBuffer = [];
+        
         function registerDevice(deviceId, nodeId, parameters) {
             let device = searchDeviceByID(deviceId);
             if (device) {
@@ -509,13 +511,29 @@ module.exports = function(RED) {
                     device.parameters = parameters || {};
                     debugMessage(`For device ${deviceId} was succesfully registred managment node whith id ${device.manager}`)
                     statusUpdate({"color": "green", "text": "registered"}, device);
+                    //удалить запись из буффера при регистрации
+                    let currentBuffer = registrationBuffer.find(el => el.manager == nodeId);
+                    debugMessage(`Current buffer is ${currentBuffer}. Current buffer size is ${registrationBuffer.length}`)
+                    if (currentBuffer) {
+                        registrationBuffer.splice(registrationBuffer.indexOf(currentBuffer), 1)
+                        debugMessage(`Element from registration buffer was deleted. Current buffer size is ${registrationBuffer.length}`)
+                    }    
                     return 0;
                 }
                 if (device.manager != nodeId) {
                     debugMessage(`For device ${deviceId} there is already registrated managment node whith id ${device.manager}`)
-                    statusUpdate({"color": "red", "text": "not registered"}, device);
+                    //statusUpdate({"color": "red", "text": "not registered"}, device);
                     return 2;
                 }
+
+
+            } else {
+                if (!registrationBuffer.find(el => el.manager == nodeId)) {
+                    //регистрировать запрос от первого, остальных слать
+                    registrationBuffer.push({"id": deviceId, "manager": nodeId, "parameters": parameters});
+                    debugMessage(`New element in registration buffer. Current buffer size is ${registrationBuffer.length}`)
+                }
+                
             }
            
 
@@ -554,12 +572,12 @@ module.exports = function(RED) {
             node.removeListener('deviceReady', onDeviceReady)
         }
 
-        function onFixAddr(data) {
-            if (data) {
-                let device = searchDeviceByID(data.id);
-                device.fixedaeddress = data.address;
-            }
-        }
+        // function onFixAddr(data) {
+        //     if (data) {
+        //         let device = searchDeviceByID(data.id);
+        //         device.fixedaeddress = data.address;
+        //     }
+        // }
         
         node.on('refreshHttp', function(data) {
             RED.httpAdmin.get("/yandexdevices_"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
@@ -570,11 +588,11 @@ module.exports = function(RED) {
 
 
         //API for station node
-        RED.httpAdmin.post("/station/" + node.id + "/fixaddress", RED.auth.needsPermission('yandex-login.write'), function(req, res) {
-            debugMessage(JSON.stringify(req.body));
-            onFixAddr(req.body);
-            res.json({ status: 'success' });
-        });
+        // RED.httpAdmin.post("/station/" + node.id + "/fixaddress", RED.auth.needsPermission('yandex-login.write'), function(req, res) {
+        //     debugMessage(JSON.stringify(req.body));
+        //     onFixAddr(req.body);
+        //     res.json({ status: 'success' });
+        // });
 
         
         // main init
