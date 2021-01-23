@@ -235,7 +235,8 @@ module.exports = function(RED) {
                 device.failConnectionAttempts = 0;
                 device.waitForListening = false;
                 device.playAfterTTS = false;
-                device.watchDog = setTimeout(() => device.ws.close(), 100000);
+                device.watchDog = setTimeout(() => device.ws.close(), 10000);
+                device.pingInterval = setInterval(onPing,300,device)
             });
             device.ws.on('message', function incoming(data) {
                 debugMessage(`${device.id}: ${JSON.stringify(data)}`);
@@ -260,7 +261,7 @@ module.exports = function(RED) {
                 clearTimeout(device.watchDog);
                 debugMessage(`cleared timeout for ${device.id}`)
                 device.watchDog = setTimeout(() => {
-                device.ws.close()}, 100000);
+                device.ws.close()}, 10000);
             }); 
 
             device.ws.on('close', function close(code, reason){
