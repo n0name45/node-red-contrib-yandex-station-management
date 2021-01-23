@@ -220,8 +220,10 @@ module.exports = function(RED) {
                 device.waitForListening = false;
                 device.playAfterTTS = false;
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
+                device.pingInterval = setInterval(onPing,300,device)
             });
             device.ws.on('message', function incoming(data) {
+                debugMessage(`${device.id}: incoming message`)
                 device.lastState = JSON.parse(data).state; 
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
@@ -265,10 +267,10 @@ module.exports = function(RED) {
                 //device.localConnectionFlag = false;
                 clearTimeout(device.watchDog);
             })            
-            // device.ws.on('ping', function ping(data){
-            //     device.ws.pong(data);
+             device.ws.on('ping', function ping(data){
+                 device.ws.pong(data);
 
-            // })
+             })
             device.ws.on('error', function error(data){
                 //statusUpdate({"color": "red", "text": "disconnected"}, device);
                 debugMessage(`error: ${data}`);
@@ -413,7 +415,7 @@ module.exports = function(RED) {
         function sendMessage(deviceId, messageType, message) {
             let device = searchDeviceByID(deviceId);
             //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
-            debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
+            //debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
             if (device.ws.readyState == 1){
 
                     for (let m of messageConstructor(messageType, message, device)) {
@@ -424,7 +426,7 @@ module.exports = function(RED) {
                             "sentTime": Date.now()
                             }
                             device.ws.send(JSON.stringify(data));
-                        debugMessage('Send message: ' + JSON.stringify(data));
+                        //debugMessage('Send message: ' + JSON.stringify(data));
                     }
                 return 'ok'
             } else {
@@ -436,6 +438,9 @@ module.exports = function(RED) {
             return node.deviceList.find(device => device.id == id)
         }
         
+        function onPing(device) {
+            sendMessage(device.id, 'command', {payload: 'ping'});
+        }
         function getStatus(id) {
             let device = searchDeviceByID(id);
             if (typeof(device) === 'object' && device.ws.readyState) {
