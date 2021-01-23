@@ -223,7 +223,7 @@ module.exports = function(RED) {
                 device.pingInterval = setInterval(onPing,300,device)
             });
             device.ws.on('message', function incoming(data) {
-                debugMessage(`${device.id}: incoming message`)
+                //debugMessage(`${device.id}: incoming message`)
                 device.lastState = JSON.parse(data).state; 
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
