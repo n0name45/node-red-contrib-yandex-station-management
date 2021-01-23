@@ -72,7 +72,7 @@
         console.log(currentId);
         
         selector.empty();
-        $.getJSON('yandexdevices_'+config.id,function(data) {
+        $.getJSON('stations/'+config.id,function(data) {
             data.devices.forEach(device => {
             selector.append(`<option value="${device.id}"> 
             ${device.name}(${device.id})
@@ -92,7 +92,7 @@
         //костыль для сохранения данных из рантайма
         selector.data('station_id', currentId);
         //let deviceList = $.getJSON('yandexdevices_'+config.id)
-        $.getJSON('yandexdevices_'+config.id,function(data) {
+        $.getJSON('stations/'+config.id,function(data) {
             data.devices.forEach(device => {
             selector.append(`<option value="${device.id}"> 
             ${device.name}(${device.id})

@@ -32,8 +32,24 @@ module.exports = function(RED) {
                 node.log(text);
             }
         }
+        
+        let registrationBuffer = [];
     
-
+        function deviceListProcessing(deviceList) {
+            deviceList.forEach(device => {
+                if (device.address && device.port ) {
+                   
+                     if (node.readyList.find(item => item.id == device.id)){
+                        debugMessage('skipping');
+                    } else {
+                        node.emit(`deviceReady`, device);
+                        node.readyList.push({ 'name': device.name,  'id': device.id, 'platform': device.platform, 'address': device.address, 'port': device.port, 'host': device.host, 'parameters': device.parameters});
+                        node.emit('refreshHttp', node.activeStationList, node.readyList)
+                        statusUpdate({"color": "yellow", "text": "connecting..."}, device);
+                    }
+                }
+            });
+        }
 
         async function getDevices(token)
         {
@@ -55,22 +71,28 @@ module.exports = function(RED) {
                 let data = JSON.parse(response);
                 if (node.deviceList.length == 0) {node.deviceList = data.devices;}
                 debugMessage(`Recieved device list of ${node.deviceList.length} devices`);
+                node.activeStationList = [];
+                //registartion queue processing
+                node.deviceList.forEach(device => {
+                    //сразу задать стартовой значение набора парметров ={}, чтобы потом проверять их наличие в рамках всей программы.
+                    device.parameters = {};
+                    let bufferStation = registrationBuffer.find(el => el.id == device.id )
+                    if (bufferStation) {
+                        let result = registerDevice(bufferStation.id, bufferStation.manager, bufferStation.parameters)
+                        if (result != 2 && result != undefined)  {
+                            registrationBuffer.splice(registrationBuffer.indexOf(bufferStation,1));
+                        }
+                        
+                    }
+                        node.activeStationList.push({ 'name': device.name,  'id': device.id, 'platform': device.platform, 'address': device.address, 'port': device.port});
+                });
+                //node.emit('refreshHttp', node.activeStationList, node.readyList)
+                deviceListProcessing(node.deviceList)
+
                 discoverDevices(node.deviceList)
                 .then(() => {
                    
-                    node.deviceList.forEach(device => {
-                        if (device.address && device.host  && device.port ) {
-                           
-                             if (node.readyList.find(item => item.id == device.id)){
-                                debugMessage('skipping');
-                            } else {
-                                node.emit(`deviceReady`, device);
-                                node.readyList.push({ 'name': device.name,  'id': device.id, 'platform': device.platform, 'address': device.address, 'port': device.port, 'host': device.host});
-                                node.emit('refreshHttp', node.readyList)
-                                statusUpdate({"color": "yellow", "text": "connecting..."}, device);
-                            }
-                        }
-                    });
+                    deviceListProcessing(node.deviceList)
                    
                 });
                 debugMessage(node.id);
@@ -95,16 +117,21 @@ module.exports = function(RED) {
                 if (result.length != 0){
                     for (const device of deviceList) {
                         result.forEach(element => {
-                            let srvEls = element.packet.answers.find(el => el.type == "SRV");
-                            let txtEls = element.packet.answers.find(el => el.type == "TXT");
-                            if (typeof(txtEls) != undefined ) {
-                                if (txtEls.rdata.deviceId == device.id && !device.localConnectionFlag) {
-                                    device.address =  element.address;
-                                    device.port = element.service.port;
-                                    device.host = srvEls.rdata.target;
+                            let checkConnType = device.parameters.network || {}
+                            //если режим автоопределения адреса или набор параметров пустой, то записывать значния из результатов mdns поиска
+                            if (checkConnType.mode == "auto" || JSON.stringify(checkConnType) == "{}") {
+                                let srvEls = element.packet.answers.find(el => el.type == "SRV");
+                                let txtEls = element.packet.answers.find(el => el.type == "TXT");
+                                if (typeof(txtEls) != undefined ) {
+                                    if (txtEls.rdata.deviceId == device.id && !device.localConnectionFlag) {
+                                        device.address =  element.address;
+                                        device.port = element.service.port;
+                                        device.host = srvEls.rdata.target;
+                                    }
                                 }
                             }    
                         })
+                        
                     }
                 }
                 
@@ -154,22 +181,7 @@ module.exports = function(RED) {
             debugMessage(`Status update event: ${JSON.stringify(status)} for ${device.id}`);
             node.emit(`statusUpdate_${device.id}`, status)
         }
-        function statusUpdateWS(ws, options) {
-            switch(ws){
-                case 0: 
-                    node.status({fill:"yellow",shape:"dot",text:`connecting ${options}`});
-                    break;
-                case 1: 
-                    node.status({fill:"green",shape:"dot",text:`connected`});
-                    break;    
-                case 2: 
-                    node.status({fill:"red",shape:"dot",text:`disconnecting`});
-                    break;    
-                case 3: 
-                    node.status({fill:"red",shape:"dot",text:`disconnected, code ${options}`});
-                    break;    
-            }
-        }
+
         function onDeviceReady(device) {
             debugMessage(`recieved event devicesListReady for ${device.id}!`)
             connect(device)
@@ -223,16 +235,16 @@ module.exports = function(RED) {
                 device.failConnectionAttempts = 0;
                 device.waitForListening = false;
                 device.playAfterTTS = false;
-                device.watchDog = setTimeout(() => device.ws.close(), 10000);
+                device.watchDog = setTimeout(() => device.ws.close(), 100000);
             });
             device.ws.on('message', function incoming(data) {
-                //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
+                debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 device.lastState = JSON.parse(data).state; 
                 //debugMessage(checkSheduler(device, JSON.parse(data).sentTime));
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
                 if (device.lastState.aliceState == 'LISTENING' && device.playAfterTTS) {node.emit('startPlay', device)}
-                if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && device.parameters) {
+                if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && JSON.stringify(device.parameters) != "{}") {
                     if (device.parameters.sheduler) {
                         let res = checkSheduler(device, JSON.parse(data).sentTime)
                         if (!res[0]) {    
@@ -246,8 +258,9 @@ module.exports = function(RED) {
 
                 }
                 clearTimeout(device.watchDog);
+                debugMessage(`cleared timeout for ${device.id}`)
                 device.watchDog = setTimeout(() => {
-                device.ws.close()}, 10000);
+                device.ws.close()}, 100000);
             }); 
 
             device.ws.on('close', function close(code, reason){
@@ -451,7 +464,7 @@ module.exports = function(RED) {
             }
         }
         function checkSheduler(device, timestamp) {
-            let sheduler = (device.parameters)?device.parameters.sheduler:[];
+            let sheduler = (JSON.stringify(device.parameters) != "{}")?device.parameters.sheduler:[];
             let date = new Date(timestamp);
             let timeCurrent = date.getDay()*1000 + date.getHours()*60 + date.getMinutes();
             let daySheduler = sheduler.find(el => el.dayNumber == date.getDay())
@@ -495,22 +508,47 @@ module.exports = function(RED) {
             }
         }
 
-        let registrationBuffer = [];
+
         
         function registerDevice(deviceId, nodeId, parameters) {
             let device = searchDeviceByID(deviceId);
             if (device) {
+                //если запрос пришел от той же управляющей ноды
                 if (device.manager == nodeId) {
-                    device.parameters = parameters || {};
+                    device.parameters = parameters;
+                    if (device.parameters.network){
+                        if (device.mode != device.parameters.network.mode || device.address != device.parameters.network.fixedAddress || device.port != device.parameters.network.fixedPort) {
+                            //написать функцию reconnect(device)
+                            //device.ws.close(1000);
+                        }
+                        (device.parameters.network.fixedAddress.length > 0 && device.parameters.network.mode == "manual")?device.address = device.parameters.network.fixedAddress:undefined;
+                        (device.parameters.network.fixedPort.length > 0 && device.parameters.network.mode == "manual")?device.port = device.parameters.network.fixedPort:undefined;
+
+                        device.mode = device.parameters.network.mode;
+                        // if (device.address != device.parameters.network.fixedAddress) {
+
+                        // }
+                    }
+                    (device.parameters.connection == false)?device.connection = false:device.connection = true;
+
                     statusUpdate({"color": "green", "text": "registered"}, device);
                     return 1;
                                   
                 }
+                //новый и первый запрос на регистрацию для устройства
                 if (typeof(device.manager) == 'undefined') {
                     device.manager = nodeId;
-                    device.parameters = parameters || {};
+                    device.parameters = parameters;
+                    if (device.parameters.network){
+                        device.mode = device.parameters.network.mode;
+                        (device.parameters.network.fixedAddress.length > 0 && device.parameters.network.mode == "manual")?device.address = device.parameters.network.fixedAddress:undefined;
+                        (device.parameters.network.fixedPort.length > 0 && device.parameters.network.mode == "manual")?device.port = device.parameters.network.fixedPort:undefined;
+                        debugMessage(`Network parameters: ${JSON.stringify(device.parameters.network)}`)
+                    }
+                    (device.parameters.connection == false)?device.connection = false:device.connection = true;
+                    if (device.parameters.connection)
                     debugMessage(`For device ${deviceId} was succesfully registred managment node whith id ${device.manager}`)
-                    statusUpdate({"color": "green", "text": "registered"}, device);
+                    //statusUpdate({"color": "green", "text": "registered"}, device);
                     //удалить запись из буффера при регистрации
                     let currentBuffer = registrationBuffer.find(el => el.manager == nodeId);
                     debugMessage(`Current buffer is ${currentBuffer}. Current buffer size is ${registrationBuffer.length}`)
@@ -520,6 +558,7 @@ module.exports = function(RED) {
                     }    
                     return 0;
                 }
+                //новый запрос на регситрацию при наличии уже зарегистрированной ноды
                 if (device.manager != nodeId) {
                     debugMessage(`For device ${deviceId} there is already registrated managment node whith id ${device.manager}`)
                     //statusUpdate({"color": "red", "text": "not registered"}, device);
@@ -543,7 +582,7 @@ module.exports = function(RED) {
             if (device) {
                 if (device.manager == nodeId) {
                     device.manager = undefined;
-                    device.parameters = undefined;
+                    device.parameters = {};
                     debugMessage(`For device ${deviceId} was succesfully unregistred managment node whith id ${device.manager}`)
                     return 0;              
                 } else {
@@ -579,9 +618,12 @@ module.exports = function(RED) {
         //     }
         // }
         
-        node.on('refreshHttp', function(data) {
+        node.on('refreshHttp', function(activeList, readyList) {
             RED.httpAdmin.get("/yandexdevices_"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
-                res.json({"devices": data});
+                res.json({"devices": readyList});
+            });
+            RED.httpAdmin.get("/stations/"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
+                res.json({"devices": activeList});
             });
         });
         node.on('close', onClose)

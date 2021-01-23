@@ -8,6 +8,7 @@ module.exports = function(RED) {
         node.network = config.network;
         node.fixedAddress = config.fixedAddress;
         node.fixedPort = config.fixedPort;
+        node.networkMode = node.network.mode || "auto";
         node.debugFlag = true;
         node.status({});
 
@@ -35,7 +36,7 @@ module.exports = function(RED) {
         }
         node.registerDevice = function() {
             debugMessage(`Send registration for ${node.station}`);
-            let params = {"connection": true,  "sheduler": node.sheduler, "network":{"fixedAddress": node.fixedAddress, "fixedPort": node.fixedPort} }
+            let params = {"connection": true,  "sheduler": node.sheduler, "network":{"mode": node.networkMode, "fixedAddress": node.fixedAddress, "fixedPort": node.fixedPort} }
             let status = node.controller.registerDevice(node.station, node.id, params);
             debugMessage(`Result is ${status}  ${typeof(status)}`);
             node.registration = (status != 2 && status != undefined)?true:false;
