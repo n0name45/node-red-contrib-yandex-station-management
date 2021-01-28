@@ -9,6 +9,7 @@ module.exports = function(RED) {
         node.fixedAddress = config.fixedAddress;
         node.fixedPort = config.fixedPort;
         node.networkMode = node.network.mode || "auto";
+        node.connectionFlag = config.connectionFlag;
         node.debugFlag = true;
         node.status({});
 
@@ -17,7 +18,7 @@ module.exports = function(RED) {
                 node.log(text);
             }
         }
-        //debugMessage(JSON.stringify(node.network));
+        //debugMessage(JSON.stringify(node.connectionFlag));
         //debugMessage(JSON.stringify(node.fixedAddress));
         //debugMessage(JSON.stringify(node.fixedPort));
         if (node.sheduler) {
@@ -26,7 +27,8 @@ module.exports = function(RED) {
             });
         }
         node.onStatus = function(data) {
-            (node.registration)?node.status({fill: data.color,shape:"dot",text: data.text}):node.status({fill: "red",shape:"dot",text: `not registered`})
+            //(node.registration)?node.status({fill: data.color,shape:"dot",text: data.text}):node.status({fill: "red",shape:"dot",text: `not registered`})
+            node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
         }
        
         node.onDeviceReady = function(device) {
@@ -36,7 +38,7 @@ module.exports = function(RED) {
         }
         node.registerDevice = function() {
             debugMessage(`Send registration for ${node.station}`);
-            let params = {"connection": true,  "sheduler": node.sheduler, "network":{"mode": node.networkMode, "fixedAddress": node.fixedAddress, "fixedPort": node.fixedPort} }
+            let params = {"connection": node.connectionFlag,  "sheduler": node.sheduler, "network":{"mode": node.networkMode, "fixedAddress": node.fixedAddress, "fixedPort": node.fixedPort} }
             let status = node.controller.registerDevice(node.station, node.id, params);
             debugMessage(`Result is ${status}  ${typeof(status)}`);
             node.registration = (status != 2 && status != undefined)?true:false;
