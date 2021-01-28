@@ -213,7 +213,7 @@
 ![alt text](/readme_images/dashboardPlayer.png "player")
 ![alt text](/readme_images/dashboardPlayerFlow.png "player")
 
-Есть еще один вариант от сообщества, который надо самостоятельно импортировать [со страницы автора](https://github.com/twocolors/node-red-dashboard-template/blob/main/alice.json)
+Есть еще один вариант от сообщества, который надо самостоятельно импортировать [со страницы автора](https://github.com/twocolors/node-red-dashboard-template/blob/main/alice_v2.json)
 
 Добавляется простым flow и выглядит отлично)
 
