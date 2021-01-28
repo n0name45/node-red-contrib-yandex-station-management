@@ -413,25 +413,32 @@ module.exports = function(RED) {
 
         }
         function sendMessage(deviceId, messageType, message) {
-            let device = searchDeviceByID(deviceId);
-            //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
-            //debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
-            if (device.ws.readyState == 1){
+            try {
+                let device = searchDeviceByID(deviceId);
+                //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
+                //debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
+                if (device.ws.readyState == 1){
+    
+                        for (let m of messageConstructor(messageType, message, device)) {
+                            let data = {
+                                "conversationToken": device.token,
+                                "id": device.id,
+                                "payload": m,
+                                "sentTime": Date.now()
+                                }
+                                device.ws.send(JSON.stringify(data));
+                            //debugMessage('Send message: ' + JSON.stringify(data));
+                        }
+                    return 'ok'
+                } else {
+                    return 'Device offline'
+                }
 
-                    for (let m of messageConstructor(messageType, message, device)) {
-                        let data = {
-                            "conversationToken": device.token,
-                            "id": device.id,
-                            "payload": m,
-                            "sentTime": Date.now()
-                            }
-                            device.ws.send(JSON.stringify(data));
-                        //debugMessage('Send message: ' + JSON.stringify(data));
-                    }
-                return 'ok'
-            } else {
-                return 'Device offline'
+            } catch(err) {
+                debugMessage(`Error while sending message: ${err}`)
             }
+            
+
         }
         
         function searchDeviceByID(id) {
