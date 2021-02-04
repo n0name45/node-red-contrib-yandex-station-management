@@ -90,7 +90,7 @@ module.exports = function(RED) {
 
                 discoverDevices(node.deviceList)
                 .then(() => {
-                   
+                    debugMessage(`calling processing for ${node.deviceList.length} devices`);
                     deviceListProcessing(node.deviceList)
                    
                 });
@@ -195,6 +195,8 @@ module.exports = function(RED) {
                     .then(() => {
                         if (device.address && device.port) {
                             makeConn(device)
+                        } else {
+                            debugMessage(`address is ${device.address}, port is ${device.port}`);
                         }
                     })
                     .catch(function (err) {
@@ -327,7 +329,7 @@ module.exports = function(RED) {
                     connect(device)
                 }
             } else {
-                debugMessage(`device ws is ${JSON.stringify(device)}`);
+                debugMessage(`Reconnection error: No device found`);
             }
         };
 
@@ -565,6 +567,7 @@ module.exports = function(RED) {
                         device.mode = device.parameters.network.mode;
                         (device.parameters.network.fixedAddress.length > 0 && device.parameters.network.mode == "manual")?device.address = device.parameters.network.fixedAddress:undefined;
                         (device.parameters.network.fixedPort.length > 0 && device.parameters.network.mode == "manual")?device.port = device.parameters.network.fixedPort:undefined;
+                        if (device.parameters.network.mode == "auto") {removeDevice(node.readyList, device)}
                         debugMessage(`Network parameters: ${JSON.stringify(device.parameters.network)}`)
                     }
                     (device.parameters.connection == false)?device.connection = false:device.connection = true;
