@@ -47,13 +47,13 @@ module.exports = function(RED) {
         }
 
         node.on('close', () => {
-            node.controller.removeListener(`statusUpdate_${node.station}`, node.onStatus)
+            //node.controller.removeListener(`statusUpdate_${node.station}`, node.onStatus)
             node.controller.removeListener('deviceReady', node.onDeviceReady);
             node.controller.unregisterDevice(node.station, node.id)
         });
 
         if (node.controller) {
-            node.onStatus(node.controller.getStatus(node.station));
+            //node.onStatus(node.controller.getStatus(node.station));
             node.controller.on(`statusUpdate_${node.station}`, node.onStatus);
             node.controller.on('deviceReady', node.onDeviceReady);
             node.registerDevice();

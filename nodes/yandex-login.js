@@ -74,7 +74,7 @@ module.exports = function(RED) {
                 //registartion queue processing
                 node.deviceList.forEach(device => {
                     //сразу задать стартовой значение набора парметров ={}, чтобы потом проверять их наличие в рамках всей программы.
-                    device.parameters = {};
+                    if (device.parameters == undefined) { device.parameters = {} };
                     let bufferStation = registrationBuffer.find(el => el.id == device.id )
                     if (bufferStation) {
                         let result = registerDevice(bufferStation.id, bufferStation.manager, bufferStation.parameters)
@@ -122,7 +122,7 @@ module.exports = function(RED) {
                                 let srvEls = element.packet.answers.find(el => el.type == "SRV");
                                 let txtEls = element.packet.answers.find(el => el.type == "TXT");
                                 if (typeof(txtEls) != undefined ) {
-                                    if (txtEls.rdata.deviceId == device.id && !device.localConnectionFlag) {
+                                    if (txtEls.rdata.deviceId == device.id) {
                                         device.address =  element.address;
                                         device.port = element.service.port;
                                         device.host = srvEls.rdata.target;
@@ -167,8 +167,6 @@ module.exports = function(RED) {
             {
                 data = JSON.parse(response);
                 device.token = data.token
-                device.localConnectionFlag = true;
-    
             })
             .catch(function (err) {
                 removeDevice(node.readyList, device);
@@ -195,7 +193,9 @@ module.exports = function(RED) {
                     debugMessage('recieving conversation token...');
                     getLocalToken(device)
                     .then(() => {
-                        makeConn(device)
+                        if (device.address && device.port) {
+                            makeConn(device)
+                        }
                     })
                     .catch(function (err) {
                         debugMessage('Error while getting token: ' + err);
@@ -206,11 +206,11 @@ module.exports = function(RED) {
                         debugMessage(`ws.state: ${device.ws.readyState}`);
                         device.ws = undefined;
                         connect(device);
-                    } else {
-                        debugMessage('cannot reconnect... Try in 60 seconds')
-                        setTimeout(connect, 60000, device);
+                    } //else {
+                    //    debugMessage('cannot reconnect... Try in 60 seconds. WS=' + device.ws.readyState);
+                    //    setTimeout(connect, 60000, device);
 
-                    }
+                    //}
                 }
             } else {
                 debugMessage(`${device.id} connection is disabled by settings in manager node ${device.manager}`)
@@ -235,10 +235,7 @@ module.exports = function(RED) {
                 debugMessage(`Connected to ${device.address}, data: ${data}`);
                 sendMessage(device.id, 'command', {payload: 'ping'});
                 statusUpdate({"color": "green", "text": "connected"}, device);
-                //device.localConnectionFlag = true;
                 debugMessage(`connection of ${device.id} success!`);
-                //device.localConnectionFlag = true;
-                device.failConnectionAttempts = 0;
                 device.waitForListening = false;
                 device.playAfterTTS = false;
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
@@ -246,20 +243,29 @@ module.exports = function(RED) {
             });
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
-                device.lastState = JSON.parse(data).state; 
+                let dataRecieved = JSON.parse(data)
+                device.lastState = dataRecieved.state; 
                 //debugMessage(checkSheduler(device, JSON.parse(data).sentTime));
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
                 if (device.lastState.aliceState == 'LISTENING' && device.playAfterTTS) {node.emit('startPlay', device)}
-                if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && JSON.stringify(device.parameters) != "{}") {
-                    if (device.parameters.sheduler) {
-                        let res = checkSheduler(device, JSON.parse(data).sentTime)
-                        if (!res[0]) {    
-                            if (device.shedulerFlag || device.shedulerFlag == undefined) {
-                                node.emit('stopPlay', device, res[1])
-                                device.shedulerFlag  = false
-                                setTimeout(() => {device.shedulerFlag = true}, 1000)
-                            }
+                // if (device.parameters.hasOwnProperty(sheduler)) {
+                //     let resultSheduler = checkSheduler(device, dataRecieved.sentTime)
+                //     device.canPlay = resultSheduler[0]
+                //     if (device.canPlay == false) {
+                //         node.emit('stopPlay', device, res[1])
+                //     }
+                // }
+
+
+                if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && device.parameters.hasOwnProperty("sheduler")) {
+                    let res = checkSheduler(device, dataRecieved.sentTime)
+                    debugMessage(`Result of cheking sheduler is ${res.toString}`);
+                    if (!res[0]) {    
+                        if (device.shedulerFlag || device.shedulerFlag == undefined) {
+                            node.emit('stopPlay', device, res[1])
+                            device.shedulerFlag  = false
+                            setTimeout(() => {device.shedulerFlag = true}, 5000)
                         }
                     }
 
@@ -273,40 +279,30 @@ module.exports = function(RED) {
             device.ws.on('close', function close(code, reason){
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
                 device.lastState = {};
-            //if (device.failConnectionAttempts == 3) {
-            //    device.localConnectionFlag = false;
-            //    removeDevice(node.readyList, device);
-            //    node.emit('refreshHttp', node.readyList);
-            //}
-            if (device.localConnectionFlag) {
+                clearTimeout(device.watchDog);
                     switch(code) {
                         case 4000:  //invalid token
-                            device.failConnectionAttempts =+ 1;
                             debugMessage(`getting new token...`);
                             connect(device);
                             break;
                         case 1000:  
-                            device.failConnectionAttempts =+ 1;
                             connect(device);
                             break;   
                         case 1006:
-                            device.failConnectionAttempts =+ 1;    
                             debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
                             setTimeout(connect, 60000, device);
                             break;
                         case 10000:
-                            debugMessage(`Reconnect device ${device.id}`);
+                            debugMessage(`Reconnect device reason 10000 ${device.id}`);
                             connect(device);
                             break;
                         default:
-                            device.failConnectionAttempts =+ 1;
                             debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 60 seconds.` );
                             setTimeout(connect, 60000, device);
                             break;
                     }
-                }
-                //device.localConnectionFlag = false;
-                clearTimeout(device.watchDog);
+
+
             })            
             device.ws.on('error', function error(data){
                 //statusUpdate({"color": "red", "text": "disconnected"}, device);
@@ -321,21 +317,18 @@ module.exports = function(RED) {
 
         function reconnect(device) {
             //проверить текущий статус соединения ws.status
+
             if (device.ws) {
-                if (device.ws.readyState == 1 && device.ws.readyState == 0) {
-                    device.ws.close(10000, 'restart on call')
+                if (device.ws.readyState == 1 || device.ws.readyState == 0) {
+                    debugMessage(`${device.id} device.ws.readyState is ${device.ws.readyState}`);
+                    device.ws.close();
                 } else {
-                    debugMessage(`Connecting device ${device.id}`);
+                    debugMessage(`New connection to ${device.id}`);
                     connect(device)
                 }
+            } else {
+                debugMessage(`device ws is ${JSON.stringify(device)}`);
             }
-            //отключиться
-            //сбросить таймеры
-            //if (device.connection) {
-            //    connect(device)
-           // }
-            //проверить значение флага-параметра
-            //запустить коннект
         };
 
         function messageConstructor(messageType, message, device){
@@ -466,26 +459,31 @@ module.exports = function(RED) {
 
         }
         function sendMessage(deviceId, messageType, message) {
-            let device = searchDeviceByID(deviceId);
-            //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
-            //debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
-            if (device) {
-                if (device.ws.readyState == 1){
+            
+            try {
+                let device = searchDeviceByID(deviceId);
+                //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
+                //debugMessage(`WS.STATE: ${(device.ws)?device.ws.readyState:'no device'} recieve ${messageType} with ${JSON.stringify(message)}`);
+                if (device && device.ws) {
+                    if (device.ws.readyState == 1){
 
-                        for (let m of messageConstructor(messageType, message, device)) {
-                            let data = {
-                                "conversationToken": device.token,
-                                "id": device.id,
-                                "payload": m,
-                                "sentTime": Date.now()
-                                }
-                                device.ws.send(JSON.stringify(data));
-                            //debugMessage('Send message: ' + JSON.stringify(data));
-                        }
-                    return 'ok'
-                } else {
-                    return 'Device offline'
+                            for (let m of messageConstructor(messageType, message, device)) {
+                                let data = {
+                                    "conversationToken": device.token,
+                                    "id": device.id,
+                                    "payload": m,
+                                    "sentTime": Date.now()
+                                    }
+                                    device.ws.send(JSON.stringify(data));
+                                //debugMessage('Send message: ' + JSON.stringify(data));
+                            }
+                        return 'ok'
+                    } else {
+                        return 'Device offline'
+                    }
                 }
+            } catch(err) {
+                debugMessage(`Shit happens while sending message: ${err}`);
             }
         }
         function checkSheduler(device, timestamp) {
@@ -515,68 +513,42 @@ module.exports = function(RED) {
         
         function getStatus(id) {
             let device = searchDeviceByID(id);
-            if (typeof(device) === 'object' && (device.ws).hasOwnProperty("readyState") ) {
-                switch(device.ws.readyState){
-                    case 0: 
-                    return {"color": "yellow", "text": "connecting..."}
-                    break;
-                    case 1: 
-                    return {"color": "green", "text": "connected"}
-                    break;    
-                    case 2: 
-                    return {"color": "red", "text": "disconnecting"}
-                    break;    
-                    case 3: 
-                    return {"color": "red", "text": "disconnected"}
-                    break;    
-                }
-                 
+            if (device) {
+                if (typeof(device) === 'object' && (device.ws).hasOwnProperty("readyState") ) {
+                    switch(device.ws.readyState){
+                        case 0: 
+                        return {"color": "yellow", "text": "connecting..."}
+                        break;
+                        case 1: 
+                        return {"color": "green", "text": "connected"}
+                        break;    
+                        case 2: 
+                        return {"color": "red", "text": "disconnecting"}
+                        break;    
+                        case 3: 
+                        return {"color": "red", "text": "disconnected"}
+                        break;    
+                    }
+                     
+                } 
             } else {
                 return {"color": "red", "text": "disconnected"}
             }
+
         }
 
 
         
         function registerDevice(deviceId, nodeId, parameters) {
             let device = searchDeviceByID(deviceId);
+            debugMessage(`Recieved parameters ${JSON.stringify(parameters)} for station id ${deviceId}`);
             if (device) {
-                //если запрос пришел от той же управляющей ноды
+                debugMessage(`Recieved device id is ${deviceId}, nodeID is ${nodeId}. Current device manager is ${device.manager} with parameters ${JSON.stringify(device.parameters)}`);
+                //если запрос пришел от той же управляющей ноды. А оно сюда вообще попадает?
                 if (device.manager == nodeId) {
                     device.parameters = parameters;
-                    if (device.parameters.network){
-                        if (device.mode != device.parameters.network.mode || device.address != device.parameters.network.fixedAddress || device.port != device.parameters.network.fixedPort) {
-                            //написать функцию reconnect(device)
-                            debugMessage('first');
-                            (device.parameters.network.fixedAddress.length > 0 && device.parameters.network.mode == "manual")?device.address = device.parameters.network.fixedAddress:undefined;
-                            (device.parameters.network.fixedPort.length > 0 && device.parameters.network.mode == "manual")?device.port = device.parameters.network.fixedPort:undefined;
-                            device.mode = device.parameters.network.mode;
-                            reconnect(device);
-                            //device.ws.close(1000);
-                        } else {
-                            debugMessage('second');
-                            (device.parameters.network.fixedAddress.length > 0 && device.parameters.network.mode == "manual")?device.address = device.parameters.network.fixedAddress:undefined;
-                            (device.parameters.network.fixedPort.length > 0 && device.parameters.network.mode == "manual")?device.port = device.parameters.network.fixedPort:undefined;
-    
-                            device.mode = device.parameters.network.mode;
-                        }
-
-                    }
-                    if (device.parameters.connection != undefined) {
-                       if (device.parameters.connection == false) {
-                           device.oldConnection = device.connection;
-                            device.connection = false; 
-                            if (device.oldConnection == true) {reconnect(device)}
-                       } else {
-                        device.oldConnection = device.connection;
-                        device.connection = true;
-                        if (device.oldConnection == false) {reconnect(device)}
-                       }
-                      
-                    }
-                    
-
-                    statusUpdate({"color": "green", "text": "registered"}, device);
+                    debugMessage(`Device ${device.id} already registered with manager id ${device.manager}. Updating parameters and restart...`);
+                    reconnect(device);
                     return 1;
                                   
                 }
@@ -584,14 +556,19 @@ module.exports = function(RED) {
                 if (typeof(device.manager) == 'undefined') {
                     device.manager = nodeId;
                     device.parameters = parameters;
-                    if (device.parameters.network){
+                    debugMessage(`Parameters are: ${JSON.stringify(device.parameters)}`);
+                    if (device.parameters.network) {
+                        if (device.mode == 'manual') {
+                            device.address = undefined;
+                            device.port = undefined;
+                        }
                         device.mode = device.parameters.network.mode;
                         (device.parameters.network.fixedAddress.length > 0 && device.parameters.network.mode == "manual")?device.address = device.parameters.network.fixedAddress:undefined;
                         (device.parameters.network.fixedPort.length > 0 && device.parameters.network.mode == "manual")?device.port = device.parameters.network.fixedPort:undefined;
                         debugMessage(`Network parameters: ${JSON.stringify(device.parameters.network)}`)
                     }
                     (device.parameters.connection == false)?device.connection = false:device.connection = true;
-                    if (device.parameters.connection)
+                    //if (device.parameters.connection)
                     debugMessage(`For device ${deviceId} was succesfully registred managment node whith id ${device.manager}`)
                     //statusUpdate({"color": "green", "text": "registered"}, device);
                     //удалить запись из буффера при регистрации
@@ -600,10 +577,11 @@ module.exports = function(RED) {
                     if (currentBuffer) {
                         registrationBuffer.splice(registrationBuffer.indexOf(currentBuffer), 1)
                         debugMessage(`Element from registration buffer was deleted. Current buffer size is ${registrationBuffer.length}`)
-                    }    
+                    }
+                    reconnect(device);    
                     return 0;
                 }
-                //новый запрос на регситрацию при наличии уже зарегистрированной ноды
+                //новый запрос на регистрацию при наличии уже зарегистрированной ноды
                 if (device.manager != nodeId) {
                     debugMessage(`For device ${deviceId} there is already registrated managment node whith id ${device.manager}`)
                     //statusUpdate({"color": "red", "text": "not registered"}, device);
@@ -612,6 +590,7 @@ module.exports = function(RED) {
 
 
             } else {
+                // пришел запрос на регистрацию для устройства, которого еще нет. Прибираем в буферный список, который проверятся при появлении утсройств
                 if (!registrationBuffer.find(el => el.manager == nodeId)) {
                     //регистрировать запрос от первого, остальных слать
                     registrationBuffer.push({"id": deviceId, "manager": nodeId, "parameters": parameters});
@@ -628,7 +607,8 @@ module.exports = function(RED) {
                 if (device.manager == nodeId) {
                     device.manager = undefined;
                     device.parameters = {};
-                    debugMessage(`For device ${deviceId} was succesfully unregistred managment node whith id ${device.manager}`)
+                    debugMessage(`For device ${deviceId} was succesfully unregistred managment node whith id ${device.manager}`);
+                    debugMessage(`device is: ${device}`);
                     return 0;              
                 } else {
                     return 2;
@@ -680,7 +660,16 @@ module.exports = function(RED) {
         //     onFixAddr(req.body);
         //     res.json({ status: 'success' });
         // });
+        RED.httpAdmin.get("/station/:id", RED.auth.needsPermission('yandex-login.read'), function(req,res) {
+            let id = req.params.id;
+            let device = searchDeviceByID(id);
+            if (device) {
 
+                res.json({"id": device.id,"name": device.name, "platform": device.platform, "address": device.address, "port": device.port, "manager": device.manager, "ws": device.ws, "parameters": device.parameters});
+            } else {
+                res.json({"error": 'no device found'});
+            }
+        });
         
         // main init
         if (typeof(node.token) != 'undefined') {
