@@ -1,0 +1,402 @@
+<script type="text/javascript">
+    
+    RED.nodes.registerType('alice-local-station',{
+        category: 'Yandex Station',
+        color: '#b89fcc',
+        defaults: {
+            name:{value: ""},
+            token: {
+                type: "yandex-login",
+                required: true
+            },
+            station_id: {
+                required: true
+            },
+            debugFlag: {
+                value: false
+            },
+            connectionFlag: {
+                value: true
+            },
+            sheduler: {
+                value: []
+            },
+            network:{
+                value: {}
+            },
+            fixedAddress:{
+                validate: function(address) {
+                    if (!this.network.hasOwnProperty("mode")) {
+                        return true
+                    } else if (this.network.mode == "auto") {
+                        return true
+                    } else if (this.network.mode == "manual"){
+                        return address.match(/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/)
+                    }                    
+                }
+                
+            },
+            fixedPort:{
+                validate: function(port) {
+                    if (!this.network.hasOwnProperty("mode")) {
+                        return true
+                    } else if (this.network.mode == "auto") {
+                        return true
+                    } else if (this.network.mode == "manual"){
+                        return Number(port)
+                    }                    
+                }
+            },
+            phrase: {
+                value: ''
+            }
+            
+        },
+        inputs:0,
+        outputs:0,
+        icon: "station.png",
+        label: function() {
+            return this.name||this.station_id
+        },
+        paletteLabel: "Station",
+        oneditprepare: onOpen,
+        oneditsave: onSave
+    });
+    function onRefresh() {
+        let config = RED.nodes.node($('#node-input-token').val());
+        let selector = $('#node-input-station_id');
+        let currentId = selector.data('station_id');
+        console.log(currentId);
+        
+        selector.empty();
+        $.getJSON('stations/'+config.id,function(data) {
+            data.devices.forEach(device => {
+            selector.append(`<option value="${device.id}"> 
+            ${device.name}(${device.id})
+             </option>`)
+             $(`#node-input-station_id option[value=${currentId}]`).attr("selected", true); 
+             (currentId == device.id && device.address)?$("#node-input-fixedAddress").attr("placeholder", device.address):$("#node-input-fixedAddress").attr("placeholder", "0.0.0.0");
+             (currentId == device.id && device.port)?$("#node-input-fixedPort").attr("placeholder", device.port):$("#node-input-fixedPort").attr("placeholder", "1961");
+            });
+        });
+    }
+    function onOpen() {
+        let config = RED.nodes.node($('#node-input-token').val());
+        let selector = $('#node-input-station_id');
+        selector.empty();
+        console.log(this);
+        let currentId = this.station_id;
+        //костыль для сохранения данных из рантайма
+        selector.data('station_id', currentId);
+        //let deviceList = $.getJSON('yandexdevices_'+config.id)
+        $.getJSON('stations/'+config.id,function(data) {
+            data.devices.forEach(device => {
+            selector.append(`<option value="${device.id}"> 
+            ${device.name}(${device.id})
+             </option>`)
+             $(`#node-input-station_id :contains(${currentId})`).attr("selected", true); 
+             (currentId == device.id && device.address)?$("#node-input-fixedAddress").attr("placeholder", device.address):$("#node-input-fixedAddress").attr("placeholder", "0.0.0.0");
+             (currentId == device.id && device.port)?$("#node-input-fixedPort").attr("placeholder", device.port):$("#node-input-fixedPort").attr("placeholder", "1961");
+            });
+        });
+        $('#node-input-station_id').on('change', function(type, value) {
+            let selectedId = $('#node-input-station_id').val();
+            //при открытии нет выбранного элемента
+            if (selectedId) {
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                    let device = data.devices.find(dev => dev.id == selectedId);
+                    $("#node-input-fixedAddress").attr("placeholder", device.address)
+                    $("#node-input-fixedPort").attr("placeholder", device.port)
+                 });
+            }
+
+        });
+        // заполняет массив временем с 00:00 до 24:00
+        let times = {}
+        for (let i = 0; i <= 1440; i+=15) {
+            let hours = Math.floor(i/60);
+            let minutes = i%60;
+            (hours < 10)? hours = '0'+ hours: hours = '' + hours;
+            (minutes < 10)? minutes = '0'+ minutes: minutes = '' + minutes;
+            times[i] = hours + ':' + minutes
+         
+        }
+        let sheduler = this.sheduler || [];
+        
+        $('.sheduler-block').each(function(i, block) {
+            let currentSheduler = (i == 6)?sheduler.find(el => el.dayNumber == 0):sheduler.find(el => el.dayNumber == i+1)
+            let activeFlag = (!currentSheduler)?true:currentSheduler.active
+            let startTime = (!currentSheduler)?'0':currentSheduler.from
+            let endTime = (!currentSheduler)?'1440':currentSheduler.to
+            let checkbox = $(block).children().first()
+            let fromSelect =  $(block).children('select').first()
+            let toSelect = $(block).children('select').last()
+            $(checkbox).prop('checked', activeFlag);
+            $.each(times, function(key, value) {
+                $(fromSelect).append('<option value="' + key + '">' + value + '</option>');
+                $(toSelect).append('<option value="' + key + '">' + value + '</option>');
+            });
+            $(`#${fromSelect.attr('id')} option:last`).remove(); 
+            $(`#${toSelect.attr('id')} option:first`).remove(); 
+            
+            $(`#${fromSelect.attr('id')} option[value=${startTime}]`).attr("selected", true); 
+            $(`#${toSelect.attr('id')} option[value=${endTime}]`).attr("selected", true); 
+            //отключаем поле select если галка не стоит
+            if (checkbox.prop("checked")) {
+                $(fromSelect).prop('disabled', false)
+                $(toSelect).prop('disabled', false)
+            } else {
+                    $(fromSelect).prop('disabled', true)
+                    $(toSelect).prop('disabled', true)
+            }
+            $(checkbox).on('change', function(type, value) {
+                if (checkbox.prop("checked")) {
+                    $(fromSelect).prop('disabled', false)
+                    $(toSelect).prop('disabled', false)
+                } else {
+                    $(fromSelect).prop('disabled', true)
+                    $(toSelect).prop('disabled', true)
+                }
+            })
+
+        });
+
+        $(".status-button-group").on("click", function() {
+            $(".status-button-group").removeClass("selected");
+            $(this).addClass("selected");
+            
+        });
+
+        let currentStatus = this.connectionFlag;
+        if (currentStatus == true || typeof(currentStatus) == "undefined") {
+            $("#buttonEnabled").addClass("selected");
+           
+        } else {
+            $("#buttonDisabled").addClass("selected");
+        }
+
+        let currentMode = (this.network)?this.network.mode:"auto"
+
+        if (currentMode == "auto" || typeof(currentMode) == "undefined") {
+            $("#autoButton").addClass("selected");
+            $("#address-block").hide();
+        } else {
+            $("#manualButton").addClass("selected");
+            $("#address-block").show(); 
+        };
+
+
+        $(".ip-button-group").on("click", function() {
+            $(".ip-button-group").removeClass("selected");
+            $(this).addClass("selected");
+            let pressedbutton = $(this).attr("id");
+            if (pressedbutton == "autoButton") {
+                $("#address-block").hide()   
+            } else if (pressedbutton == "manualButton") {
+                $("#address-block").show()
+                let selectedId = $('#node-input-station_id').val();
+                //при открытии нет выбранного элемента
+                 if (selectedId) {
+                $.getJSON('yandexdevices_'+config.id,function(data) {
+                    let device = data.devices.find(dev => dev.id == selectedId);
+                    $("#node-input-fixedAddress").attr("placeholder", device.address)
+                    $("#node-input-fixedPort").attr("placeholder", device.port)
+                 });
+            }
+            }
+            
+        });
+
+        
+    }
+    function onSave(){
+        //собирает массив для расписания работы на основании выставленных инпутов
+        let sheduler = [];
+        $('.sheduler-block').each(function(i, block) {
+            let shedDay = {};
+            let checkbox = $(block).children().first()
+            let fromSelect =  $(block).children('select').first()
+            let toSelect = $(block).children('select').last()
+            let activeFlag = checkbox.is(':checked');
+            let startTime = (activeFlag)?fromSelect.val():'0';
+            let endTime = (activeFlag)?toSelect.val():'1440';
+            let phrase = $('#node-input-phrase').val();
+            shedDay.active = activeFlag;
+            shedDay.from = startTime;
+            shedDay.to = endTime;
+            shedDay.phrase = phrase;
+            (i == 6)?shedDay.dayNumber = 0:shedDay.dayNumber = i + 1;
+            sheduler.push(shedDay);
+        });
+        this.sheduler = sheduler;
+
+        let network = {};
+        if ($("#autoButton").hasClass("selected")) {
+            network.mode = "auto"
+            network.address = "0.0.0.0"
+            network.port = 1961
+        } else {
+            network.mode = "manual" 
+            network.address = $("#node-input-fixedAddress").val();
+            network.port = $("#node-input-fixedPort").val();
+        }
+        this.network = network;
+
+        if ($("#buttonEnabled").hasClass("selected")) {
+            this.connectionFlag = true;
+        } else {
+            this.connectionFlag = false;
+        }
+    }
+
+
+
+</script>
+<script type="text/html" data-template-name="alice-local-station">
+    <style>
+        .label-long {min-width: 150px;width: 20%;}
+        .online {display: inline-block; width: auto; vertical-align: middle;}
+        .thin {margin: 4px 0;}
+    </style> 
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-bookmark"></i>Name</label>
+        <input type="text" id="node-input-name" placeholder="">
+    </div>
+    <div class="form-row">
+        <label for="node-input-token"><i class="fa fa-globe"></i>Login</label>
+        <input type="text" id="node-input-token" placeholder="token">
+    </div>
+    <div class="form-row">
+        <label for="node-input-station_id"><i class="fa fa-database">Station</i></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <div style="position: absolute;left: 0px; right: 40px;">
+                <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
+            </div>        
+            <div style="text-align: end; display: inline; float: right">
+                <button onclick="onRefresh()" class="red-ui-button" style="position: absolute;right: 0px;top: 0px;"><i class="fa fa-refresh"></i></button>
+            </div>
+        </div>
+    </div>
+    <div>
+        <span style="font-weight: bold; margin: 4px 0;"> Connection to device</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
+    </div>
+    <div class="form-row">
+        <span class="button-group">
+            <button type="button" id="buttonEnabled" class="red-ui-button toggle status-button-group">Enabled</button><button type="button" id="buttonDisabled" class="red-ui-button toggle status-button-group">Disabled</button>
+        </span>
+    </div>
+    <div>
+        <span style="font-weight: bold; margin: 4px 0;"> Network</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
+    </div>
+    <div class="form-row">
+        <label for="node-input-fixedAddress"><i class="fa fa-globe"></i>IP address</label>
+        <span class="button-group">
+            <button type="button" id="autoButton" class="red-ui-button toggle ip-button-group">Auto</button><button type="button" id="manualButton" class="red-ui-button toggle ip-button-group">Manual</button>
+        </span>
+        <span id="address-block">
+            <input type="text" id="node-input-fixedAddress" placeholder="0.0.0.0" style="width: 120px">
+            <span>:</span>
+            <input type="text" id="node-input-fixedPort" placeholder="1961" style="width: 50px">
+        </span>
+    </div>
+    <div>
+        <span style="font-weight: bold; margin: 4px 0;">Kid Control</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
+    </div>
+    <div class="form-row" style="margin-top: 0px; font-weight: 500">
+        <label></label>
+        <div style="display: inline-block;position: relative;width: 70%;">
+            <span class="online" style="width:20%; text-align: center;">Active</span>
+            <span class="online" style="width:38%; text-align: center;">From</span>
+            <span class="online" style="width:38%; text-align: center;">To</span>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-monday"><i class="fa fa-clock-o"></i>Monday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-monday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-monday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-monday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-tuesday"><i class="fa fa-clock-o"></i>Tuesday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-tuesday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-tuesday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-tuesday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-wednesday"><i class="fa fa-clock-o"></i>Wednesday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-wednesday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-wednesday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-wednesday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-thursday"><i class="fa fa-clock-o"></i>Thursday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-thursday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-thursday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-thursday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-friday"><i class="fa fa-clock-o"></i>Friday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-friday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-friday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-friday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-saturday"><i class="fa fa-clock-o"></i>Saturday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-saturday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-saturday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-saturday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-sunday"><i class="fa fa-clock-o"></i>Sunday</label>
+        <div class="sheduler-block" style="display: inline-block;position: relative;width: 70%;height: 20px;">
+            <input type="checkbox" id="node-input-sunday-sheduler" checked="checked" style="display: inline-block; width: 20%;">
+            <select class="time-selector" style="width:37%" id="node-input-sunday-start">
+            </select>
+            <span class="online"> - </span>
+            <select class="time-selector" style="width:37%" id="node-input-sunday-stop">
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-phrase"><i class="fa fa-comment"></i>Phrase to say</label>
+        <input type="text" id="node-input-phrase" placeholder="Я уже сплю">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="alice-local-station">
+    <p> Station node for Yandex Station local management</p>
+</script>
