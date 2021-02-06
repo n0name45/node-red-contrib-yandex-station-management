@@ -58,29 +58,7 @@
         label: function() {
             return this.name||this.station_id
         },
-        button: {
-            onclick: function() {
-                // //drawing controls
-                // let node = this;
-                // let id= node.id;
-                // let $container = document.getElementById(id)
-                // let nodeZone = $container.querySelector('.red-ui-flow-node')
-                // let nodeZoneWidth = nodeZone.width.animVal.value;
-                // let nodeZoneHeight = nodeZone.height.animVal.value;
-                // let prevIcon = 'data:img/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAfCAQAAABaZbWMAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQflAQEWNDiEAvrvAAAC10lEQVQ4y43VT2hcVRQG8N97M5k0f6Z1gpI2RksMFTU7tTWia121UAldFOzKjZBFcaPgQvcWWlvsSulC7KYEioJSdCVIDYVazcJCEqxNU2KapOk8xySTmXkuMnl5mRkTv9W757zvnnO+e869QTwrrwGLJs1YtIo9ejzlkMc1IQrieLtlzBUT5pSsixFo02W/ISNONLCDuLgV+aoLflRzQKeMoG6NVf1jTuA1o0a2RU7I7zmr3YCMWnOKQlV3rBp1oZk8YsygDlX/jYxVU465upFVFG6Y3zHmBe07UqnKGfK1t5NscNkXnkNsN8Riz/vKpU3B5vNHlPS2rLQVQgsybuiLQs77U1+dGqqZN2fOimzq93VRon5Nr/vOIlgrvpqfSVqgJtQnJzYvkkUgY07FQeVUWUt6XY/Ccb/rSYzzDvrBt75zyjSySiZ0+twlyyrJfwW3XRfetCKzTc8NdKupmVD0vnFv2WstpUqo7KbsHzKpdMLksCqYdNSHXqknutVzxHKmZacUWmo6ab+LjifroMHfZU54N1VxGif8mqI2o8sj2bJsy+Y4sstpZ6wL91hv6fzeLzuSK3LCAQstnde86LMdyCWPCQctt3Q+i1HDrtTXjc37tz7hM+KUklVt9a92DPnNSafcQr9qSptAxSHZw/IqSZu0iyxpVzMrp2ZQ2Ze+8bEhncJUkE4vC6rF1/O3HUh2rerQJlayebZZjyx6Qndq2h8Y8FMUho57mEQOhB645771ZKoquvWneo+sBce0CeJiKT/srqd3uUW2EJrVa9y+KKTLGUUrqYp2QmDNsk/sU7+G3vSRaeX/QQ9VTPnA0Y2NNm/P0z7Vr5Ca2WZkLZvxrosbyygJds55CyaspaY7jYyyCX85s0nV8GLccM41iwr2yiVFxNZElhS84bThrf2a36pbLvvZrCVlNYRyCvoddtJLjeK1eiW5454lK+jQ40kDrSqJ/gVABfSQb8OR8QAAAABJRU5ErkJggg=='
-                // //alert(node.id);
-                // let zone = document.getElementById("alice-controls-" + id)
-                // if (!zone) {
-                //     let controlZone = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-                //     controlZone.setAttribute('id', "alice-controls-" + id)
-                //     //controlZone.setAttribute('style', 'fill:#E8F0E8')
-                //     //controlZone.setAttribute('stroke', '#999999')
-                //     //controlZone.innerHTML = "<strong>Всем привет!</strong>";
-                //     $container.insertBefore(controlZone, $container.lastChild.nextSibling);
-                // }
-
-            }
-        },
+        paletteLabel: "Station",
         oneditprepare: onOpen,
         oneditsave: onSave
     });

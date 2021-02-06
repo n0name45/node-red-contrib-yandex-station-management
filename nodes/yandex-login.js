@@ -638,13 +638,6 @@ module.exports = function(RED) {
             node.deviceList = [];
             node.removeListener('deviceReady', onDeviceReady)
         }
-
-        // function onFixAddr(data) {
-        //     if (data) {
-        //         let device = searchDeviceByID(data.id);
-        //         device.fixedaeddress = data.address;
-        //     }
-        // }
         
         node.on('refreshHttp', function(activeList, readyList) {
             RED.httpAdmin.get("/yandexdevices_"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
