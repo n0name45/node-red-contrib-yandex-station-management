@@ -262,7 +262,7 @@ module.exports = function(RED) {
 
                 if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && device.parameters.hasOwnProperty("sheduler")) {
                     let res = checkSheduler(device, dataRecieved.sentTime)
-                    debugMessage(`Result of cheking sheduler is ${res.toString}`);
+                    //debugMessage(`Result of cheking sheduler is ${res.toString}`);
                     if (!res[0]) {    
                         if (device.shedulerFlag || device.shedulerFlag == undefined) {
                             node.emit('stopPlay', device, res[1])
@@ -496,10 +496,10 @@ module.exports = function(RED) {
             let timeMin = daySheduler.dayNumber*1000 + parseInt(daySheduler.from)
             let timeMax = daySheduler.dayNumber*1000 + parseInt(daySheduler.to)
             if (timeCurrent >= timeMin && timeCurrent < timeMax) {
-                debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
+                //debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
                 return [true];
             } else {
-                debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
+                //debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
                 return [false, daySheduler.phrase];
             }
             
