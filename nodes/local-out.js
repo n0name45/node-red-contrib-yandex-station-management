@@ -29,7 +29,10 @@ module.exports = function(RED) {
         });
 
         node.onStatus = function(data) {
-            node.status({fill: data.color,shape:"dot",text: data.text});
+            debugMessage(`Status: ${JSON.stringify(data)}`);
+            if (data) {
+                node.status({fill: data.color,shape:"dot",text: data.text});
+            }
         }
        
 

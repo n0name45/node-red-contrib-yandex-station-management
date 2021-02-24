@@ -42,8 +42,10 @@ module.exports = function(RED) {
         
 
         node.onStatus = function(data) {
-            node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
+            if (data) {
+                node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
             //node.log('new status ' + data)
+            }
          }
         node.onInput = function(){
             debugMessage('input message');

@@ -274,8 +274,7 @@ module.exports = function(RED) {
                 }
                 clearTimeout(device.watchDog);
                 //debugMessage(`cleared timeout for ${device.id}`)
-                device.watchDog = setTimeout(() => {
-                device.ws.close()}, 10000);
+                device.watchDog = setTimeout(() => {device.ws.close()}, 10000);
             }); 
 
             device.ws.on('close', function close(code, reason){
@@ -329,7 +328,7 @@ module.exports = function(RED) {
                     connect(device)
                 }
             } else {
-                debugMessage(`Reconnection error: No device found`);
+                debugMessage(`nothing to reconnect...`);
             }
         };
 
@@ -521,20 +520,18 @@ module.exports = function(RED) {
         function getStatus(id) {
             let device = searchDeviceByID(id);
             if (device) {
-                if (typeof(device) === 'object' && (device.ws).hasOwnProperty("readyState") ) {
+                if (device.ws) {
                     switch(device.ws.readyState){
                         case 0: 
-                        return {"color": "yellow", "text": "connecting..."}
-                        break;
+                            return {"color": "yellow", "text": "connecting..."}
                         case 1: 
-                        return {"color": "green", "text": "connected"}
-                        break;    
+                            return {"color": "green", "text": "connected"}
                         case 2: 
-                        return {"color": "red", "text": "disconnecting"}
-                        break;    
+                            return {"color": "red", "text": "disconnecting"}
                         case 3: 
-                        return {"color": "red", "text": "disconnected"}
-                        break;    
+                            return {"color": "red", "text": "disconnected"}
+                        default:
+                            return {"color": "red", "text": "disconnected"}
                     }
                      
                 } 

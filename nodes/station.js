@@ -28,7 +28,9 @@ module.exports = function(RED) {
         }
         node.onStatus = function(data) {
             //(node.registration)?node.status({fill: data.color,shape:"dot",text: data.text}):node.status({fill: "red",shape:"dot",text: `not registered`})
-            node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
+            if (data) {
+                node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
+            }
         }
        
         node.onDeviceReady = function(device) {
@@ -40,9 +42,9 @@ module.exports = function(RED) {
             debugMessage(`Send registration for ${node.station}`);
             let params = {"connection": node.connectionFlag,  "sheduler": node.sheduler, "network":{"mode": node.networkMode, "fixedAddress": node.fixedAddress, "fixedPort": node.fixedPort} }
             let status = node.controller.registerDevice(node.station, node.id, params);
-            debugMessage(`Result is ${status}  ${typeof(status)}`);
+            //debugMessage(`Result is ${status}  ${typeof(status)}`);
             node.registration = (status != 2 && status != undefined)?true:false;
-            debugMessage(`Result is ${status}  ${typeof(status)} regstrationFlag: ${node.registration}`);
+            //debugMessage(`Result is ${status}  ${typeof(status)} regstrationFlag: ${node.registration}`);
            
         }
 

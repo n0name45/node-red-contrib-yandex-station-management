@@ -62,8 +62,10 @@ module.exports = function(RED) {
             sendMessage(preparePayload(data));
         }
         node.onStatus = function(data) {
-           node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
-           //node.log('new status ' + data)
+            if (data) {
+                node.status({fill: `${data.color}`,shape:"dot",text: `${data.text}`});
+                //node.log('new status ' + data)
+            }
         }
         node.onClose = function(){
             node.controller.removeListener(`message_${node.station}`, node.onMessage);
