@@ -206,8 +206,26 @@ module.exports = function(RED) {
                 } else {
                     if (device.ws.readyState == 3) {
                         debugMessage(`ws.state: ${device.ws.readyState}`);
-                        device.ws = undefined;
-                        connect(device);
+                        //device.ws = undefined;
+                        try {
+                            if (device.address && device.port) {
+                                getLocalToken(device)
+                                .then(() => {
+                                    if (device.address && device.port) {
+                                        makeConn(device)
+                                    } else {
+                                        debugMessage(`address is ${device.address}, port is ${device.port}`);
+                                    }
+                                })
+                            } else {
+                                debugMessage(`address is ${device.address}, port is ${device.port}`);
+                            }
+                        } catch (error) {
+                            debugMessage(`Error: ${error}`);
+                            device.ws = undefined;
+                            connect(device);
+                        }
+                       //connect(device);
                     } //else {
                     //    debugMessage('cannot reconnect... Try in 60 seconds. WS=' + device.ws.readyState);
                     //    setTimeout(connect, 60000, device);
@@ -245,7 +263,7 @@ module.exports = function(RED) {
             });
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
-                let dataRecieved = JSON.parse(data)
+                let dataRecieved = JSON.parse(data);
                 device.lastState = dataRecieved.state; 
                 //debugMessage(checkSheduler(device, JSON.parse(data).sentTime));
                 node.emit(`message_${device.id}`, device.lastState);
@@ -276,7 +294,7 @@ module.exports = function(RED) {
                 //debugMessage(`cleared timeout for ${device.id}`)
                 device.watchDog = setTimeout(() => {device.ws.close()}, 10000);
             }); 
-
+            //device.ws.on('ping', function);
             device.ws.on('close', function close(code, reason){
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
                 device.lastState = {};
@@ -287,12 +305,14 @@ module.exports = function(RED) {
                             connect(device);
                             break;
                         case 1000:  
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting...` );
                             connect(device);
                             break;   
                         case 1006:
                             debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
                             setTimeout(connect, 60000, device);
                             break;
+                            
                         case 10000:
                             debugMessage(`Reconnect device reason 10000 ${device.id}`);
                             connect(device);
