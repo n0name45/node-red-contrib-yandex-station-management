@@ -41,6 +41,7 @@ module.exports = function(RED) {
                      if (node.readyList.find(item => item.id == device.id)){
                         //debugMessage('skipping');
                     } else {
+                        debugMessage(`Ready event fo ${device.id}`);
                         node.emit(`deviceReady`, device);
                         node.readyList.push({ 'name': device.name,  'id': device.id, 'platform': device.platform, 'address': device.address, 'port': device.port, 'host': device.host, 'parameters': device.parameters});
                         node.emit('refreshHttp', node.activeStationList, node.readyList)
@@ -69,7 +70,7 @@ module.exports = function(RED) {
             {
                 let data = JSON.parse(response);
                 if (node.deviceList.length == 0) {node.deviceList = data.devices;}
-                debugMessage(`Recieved device list of ${node.deviceList.length} devices`);
+                //debugMessage(`Recieved device list of ${node.deviceList.length} devices`);
                 node.activeStationList = [];
                 //registartion queue processing
                 node.deviceList.forEach(device => {
@@ -90,11 +91,11 @@ module.exports = function(RED) {
 
                 discoverDevices(node.deviceList)
                 .then(() => {
-                    debugMessage(`calling processing for ${node.deviceList.length} devices`);
+                    //debugMessage(`calling processing for ${node.deviceList.length} devices`);
                     deviceListProcessing(node.deviceList)
                    
                 });
-                debugMessage(node.id);
+                //debugMessage(node.id);
                 return node.deviceList;
             })
             .catch(function (err) {
@@ -112,7 +113,7 @@ module.exports = function(RED) {
             await mDnsSd.discover({
                 name: '_yandexio._tcp.local'
             }).then((result) => {
-                debugMessage(`Found ${result.length} devices`);
+                //debugMessage(`Found ${result.length} devices`);
                 if (result.length != 0){
                     for (const device of deviceList) {
                         result.forEach(element => {
@@ -189,6 +190,7 @@ module.exports = function(RED) {
             //connect only if !device.ws
             //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
             if (device.connection == true || typeof(device.connection) == "undefined") {
+                debugMessage(`Connecting to device ${device.id}. ws is ${JSON.stringify(device.ws)}`)
                 if (!device.ws) {
                     debugMessage('recieving conversation token...');
                     getLocalToken(device)
@@ -206,7 +208,7 @@ module.exports = function(RED) {
                 } else {
                     if (device.ws.readyState == 3) {
                         debugMessage(`ws.state: ${device.ws.readyState}`);
-                        //device.ws = undefined;
+                        device.ws = undefined;
                         try {
                             if (device.address && device.port) {
                                 getLocalToken(device)
@@ -235,7 +237,7 @@ module.exports = function(RED) {
             } else {
                 debugMessage(`${device.id} connection is disabled by settings in manager node ${device.manager}`)
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
-                setTimeout(connect, 60000, device);
+                device.timer = setTimeout(connect, 60000, device);
 
             }
 
@@ -259,7 +261,8 @@ module.exports = function(RED) {
                 device.waitForListening = false;
                 device.playAfterTTS = false;
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
-                device.pingInterval = setInterval(onPing,300,device)
+                device.pingInterval = setInterval(onPing,300,device);
+                clearTimeout(device.timer);
             });
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
@@ -310,7 +313,7 @@ module.exports = function(RED) {
                             break;   
                         case 1006:
                             debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
-                            setTimeout(connect, 60000, device);
+                            device.timer = setTimeout(connect, 60000, device);
                             break;
                             
                         case 10000:
@@ -319,7 +322,7 @@ module.exports = function(RED) {
                             break;
                         default:
                             debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 60 seconds.` );
-                            setTimeout(connect, 60000, device);
+                            device.timer = setTimeout(connect, 60000, device);
                             break;
                     }
 
