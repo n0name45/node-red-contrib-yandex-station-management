@@ -48,7 +48,7 @@
 Phrase to say - фраза, которую скажет Алиса вместо музыки:) При этом работают навыки, будильники, погода, новости и так далее.
 
 ### Нода IN.
-Ставится на старте flow и автоматически отправляет данные о текущем статусе колонки в "сыром" формате и Homekit. 
+Ставится на старте flow и автоматически отправляет данные о текущем статусе колонки в "сыром" формате и Homekit.
 #### Full status Message("сырой" формат)
 Выдает данные без преобразования, то есть в том виде, в каком они получены от устройсва. Структура сообщения:
 ```json
@@ -74,7 +74,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
         "title":"Мусорный ветер"},
         "playing":false,
         "timeSinceLastVoiceActivity":30454,
-        "volume":0} 
+        "volume":0}
 ```
 Сообщения от устройства могут приходить по несколько штук в секунду, поэтому стоит подумать о необходимости поставить штатную ноду RBE, чтобы фильтровать дубликаты по контенту(название трека(payload.playerState.title), имя исполнителя(payload.playerState.subtitle)).
 
@@ -85,13 +85,13 @@ Phrase to say - фраза, которую скажет Алиса вместо 
  - Unique messages. Отправляются только уникальные сообщения, без дубликатов.
  - Homekit format. Выбор вывода под разные устройства - Smart Speaker и Television. В примерах использования описаны сценарии.
 
-Структура  сообщения Homekit formatted - Smart Speaker: 
+Структура  сообщения Homekit formatted - Smart Speaker:
 ```json
-{"CurrentMediaState":0,"ConfiguredName":"International String Trio - Tarantella"} 
+{"CurrentMediaState":0,"ConfiguredName":"International String Trio - Tarantella"}
 ```
-Структура  сообщения Homekit formatted - Television: 
+Структура  сообщения Homekit formatted - Television:
 ```json
-{"Active":1} 
+{"Active":1}
 ```
 При использовании устройства Television появляется возможность использования "пульта" на iOS.
 ### Нода GET.
@@ -106,7 +106,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 #### Voice command.
 Отправка команды, вместо того, чтобы говорить ее колонке голосом: "Включи свет", "Включи музыку", "Включи мой плейлист", "Отключись через 15 минут" и так далее.
 
-#### TTS. 
+#### TTS.
 Воспросизведение голосом отправленных фраз - Text to Speech. Не имеет ограничения по символам. Есть ряд опций:
 - Fixed volume level. Позволяет произносить фразу заданной громкостью. Если не выбрано, то фраза произносится с текущим уровнем громкости. Обратно уровень громкости не возвращается ввиду отуствия информации о нем в получаемом статусе.
 - Prevent listening. Если выбрано, то колонка после воспроизведения не "слушает", что ей ответят.
@@ -115,7 +115,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 Все опции комбинируемы между собой.
 
 #### Homekit Formatted.
-Ловит вывод от Homekit от устройств SmartSpeaker(вкл/выкл) и Television(вкл/выкл + пульт) модуля [NRCHB](https://github.com/NRCHKB/node-red-contrib-homekit-bridged). 
+Ловит вывод от Homekit от устройств SmartSpeaker(вкл/выкл) и Television(вкл/выкл + пульт) модуля [NRCHB](https://github.com/NRCHKB/node-red-contrib-homekit-bridged).
 Встроена функция проверки hap.context,предотвращающая зацикливание.
 Стыкуется напрямую с Homekit нодой.
 Опция "Default command" указывает, какую голосовую команду запустить, если нет текущего трека для старта воспроизведения, а играть что-то надо. Например, "Включи мою музыку" или "Включи детские песни".
@@ -130,7 +130,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
     "position" : 120
 }
 ```
-2. Продолжить воспроизведение 
+2. Продолжить воспроизведение
 ```json
 {
     "command": "play"
@@ -211,8 +211,98 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 }
 ```
 
+13.  Отправить "Текст" для TTS со спецэффектами (**raw режим**):
+```json
+{
+    "command": "serverAction",
+    "serverActionEventPayload": {
+        "type": "server_action",
+        "name": "update_form",
+        "payload": {
+            "form_update": {
+                "name": "personal_assistant.scenarios.repeat_after_me",
+                "slots": [
+                    {
+                        "type": "string",
+                        "name": "request",
+                        "value": "<speaker effect='megaphone'>Ехал Грека через реку <speaker effect='-'>видит Грека в реке рак"
+                    }
+                ]
+            },
+            "resubmit": true
+        }
+    }
+}
+```
+
+- [Изменение голоса](https://cloud.yandex.com/en-ru/docs/speechkit/tts/voices)
+```json
+"value": "<speaker voice='kostya'>смелость sil <[500]> город+а берёт"
+```
+Поддерживаемые голоса: jane, oksana, omazh, zahar, ermil, levitan, ermilov, silaerkan, kolya, kostya, nastya, sasha, nick, erkanyavas, zhenya, tanya, anton_samokhvalov, tatyana_abramova, voicesearch, ermil_with_tuning, robot, dude, zombie, smoky, alyss, nick. (Список взят [тут](https://github.com/tayanov/Yandex-tts-speechkit-FIX/blob/master/custom_components/yandextts/tts.py))
+
+- [Настройка генерации речи](https://yandex.ru/dev/dialogs/alice/doc/speech-tuning-docpage/)
+```json
+"value": "смелость sil <[500]> город+а берёт"
+```
+
+- [Наложение эффектов на голос](https://yandex.ru/dev/dialogs/alice/doc/speech-effects-docpage/)
+```json
+"value": "<speaker effect='megaphone'>Ехал Грека через реку <speaker effect='-'>видит Грека в реке рак"
+```
+
+- [Библиотека звуков](https://yandex.ru/dev/dialogs/alice/doc/sounds-docpage/)
+```json
+"value": "<speaker audio='alice-sounds-game-win-1.opus'>У вас получилось!"
+```
+
+- Совмещение эффектов
+```json
+"value": "<speaker voice='kostya' audio='alice-sounds-game-win-1.opus' effect='megaphone'>добро пожаловать"
+```
+
+
 #### Stop listening.
-Принудительное прерывания "слушания" Алисы при любом входящем в ноду сообщении. Аналогично 11 команде предыдущего раздела
+
+Принудительное прерывания "слушания" Алисы при любом входящем в ноду сообщении. Аналогично 12 команде предыдущего раздела
+
+#### Пример использования нескольких RAW команд
+
+Остановить проигрывание музыки и сказать текст громкостью 0.8
+
+```json
+[
+    {"command":"stop"},
+    {
+        "command": "serverAction",
+        "serverActionEventPayload": {
+            "type": "server_action",
+            "name": "on_suggest"
+        }
+    },
+    {"command":"setVolume","volume":0.8},
+    {
+        "command": "serverAction",
+        "serverActionEventPayload": {
+            "type": "server_action",
+            "name": "update_form",
+            "payload": {
+                "form_update": {
+                    "name": "personal_assistant.scenarios.repeat_after_me",
+                    "slots": [
+                        {
+                            "type": "string",
+                            "name": "request",
+                            "value": "<speaker effect='megaphone'>Ехал Грека через реку <speaker effect='-'>видит Грека в реке рак"
+                        }
+                    ]
+                },
+                "resubmit": true
+            }
+        }
+    }
+]
+```
 
 ## Примеры использования.
 
@@ -233,7 +323,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 ![alt text](/readme_images/dashboardTemplate.png "player")
 ![alt text](/readme_images/dashboardTemplateFlow.png "player")
 
-3. Из Homekit. Ноды IN и GET имеют возможность выдачи сообщений в готовом для Homekit формате. 
+3. Из Homekit. Ноды IN и GET имеют возможность выдачи сообщений в готовом для Homekit формате.
 Можно самостоятельно подготовить сообщение к отправке в Homekit, а можно просто воспользоваться нужной настройкой внутри нод. Разумным будет установка галки Unique messages для IN-ноды, чтобы не заваливать Homekit одинаковыми сообщениями.
 
 В списке устройств [NRCHB](https://github.com/NRCHKB/node-red-contrib-homekit-bridged) есть Smart Speaker. Из коробки с помощью простого flow можно управлять состоянием вкл-выкл воспроизведения и видеть название трека. Работает только на iOS 14 или macOS Big Sur. Элементы управления внутри Homekit **не работают**, их еще не завезли Homekit-ноду.
@@ -292,9 +382,9 @@ A: В меню Node-Red есть пункт Import, а в нем раздел Ex
     - Yandex Station Max(tested)
     - Yandex Module(not tested)
 
-## Installation 
+## Installation
     Run the following command in your Node-RED user directory - typically `~/.node-red`
-    
+
     npm i node-red-contrib-yandex-station-management
 
 You need Yandex music token to work propertly.
