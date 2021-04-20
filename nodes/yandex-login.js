@@ -18,7 +18,6 @@ module.exports = function(RED) {
         node.readyList = [];
         node.activeStationList = [];
         
-        
        
         node.on('stopListening', onStopListening);
         node.on('startPlay', onStartPlay);
@@ -470,6 +469,7 @@ module.exports = function(RED) {
                         return messageConstructor('command', {'payload': 'ping'})
                     }
                 case 'raw': 
+                    if (Array.isArray(message.payload)) { return message.payload }
                     return [message.payload];
                 case 'stopListening': 
                     return [{
