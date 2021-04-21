@@ -328,7 +328,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 В списке устройств [NRCHB](https://github.com/NRCHKB/node-red-contrib-homekit-bridged) есть Smart Speaker. Из коробки с помощью простого flow можно управлять состоянием вкл-выкл воспроизведения и видеть название трека. Работает только на iOS 14 или macOS Big Sur. Элементы управления внутри Homekit **не работают**, их еще не завезли Homekit-ноду.
 
 Если требуется работать на старых версиях iOS/macOS или надо управлять воспроизведением со штатного инструмента Пульт из панели управления, то можно собрать flow на базе homekit-нод TV, ноды IN в соотвествующем формате и OUT. При этом OUT-нода в Homekit-формате умеет "понимать" вход от SmartSpeaker, Television и обоих вместе. Проверка сообщений на зацикливание встроена в ноду OUT.
-![alt text](/readme_images/homekitFlow.png "player")
+![alt text](/readme_images/homekitPlayer.png "player")
 ![alt text](/readme_images/iosRemote.jpeg "player")
 
 ## FAQ.
