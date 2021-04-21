@@ -23,6 +23,7 @@ module.exports = function(RED) {
         node.on('stopListening', onStopListening);
         node.on('startPlay', onStartPlay);
         node.on('stopPlay', onStopPlay);
+        node.on('setVolume', onSetVolume);
         node.on('deviceReady', onDeviceReady);
         node.setMaxListeners(0)
         
@@ -122,7 +123,7 @@ module.exports = function(RED) {
                             if (checkConnType.mode == "auto" || JSON.stringify(checkConnType) == "{}") {
                                 let srvEls = element.packet.answers.find(el => el.type == "SRV");
                                 let txtEls = element.packet.answers.find(el => el.type == "TXT");
-                                if (typeof(txtEls) != undefined ) {
+                                if (typeof(txtEls) !== 'undefined' ) {
                                     if (txtEls.rdata.deviceId == device.id) {
                                         device.address =  element.address;
                                         device.port = element.service.port;
@@ -171,7 +172,9 @@ module.exports = function(RED) {
             })
             .catch(function (err) {
                 removeDevice(node.readyList, device);
-                debugMessage(err)
+                debugMessage(`Error while getting conversation token. Check your internet connection. Error text: `+ err);
+                getDevices(node.token);
+                return;
             });
         };
 
@@ -260,6 +263,7 @@ module.exports = function(RED) {
                 debugMessage(`connection of ${device.id} success!`);
                 device.waitForListening = false;
                 device.playAfterTTS = false;
+                device.waitForIdle = false;
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
                 device.pingInterval = setInterval(onPing,300,device);
                 clearTimeout(device.timer);
@@ -272,6 +276,7 @@ module.exports = function(RED) {
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
                 if (device.lastState.aliceState == 'LISTENING' && device.playAfterTTS) {node.emit('startPlay', device)}
+                if (device.lastState.aliceState == 'LISTENING' && device.waitForIdle) {node.emit('setVolume', device)}
                 // if (device.parameters.hasOwnProperty(sheduler)) {
                 //     let resultSheduler = checkSheduler(device, dataRecieved.sentTime)
                 //     device.canPlay = resultSheduler[0]
@@ -357,7 +362,7 @@ module.exports = function(RED) {
 
         function messageConstructor(messageType, message, device){
             let commands = ['play', 'stop', 'next', 'prev', 'ping'];
-            let extraCommands = ['forward', 'backward'];
+            let extraCommands = ['forward', 'backward', 'volumeup', 'volumedown', "volume"];
             switch(messageType){
                 case 'command':
                     if (commands.includes(message.payload)){
@@ -365,6 +370,8 @@ module.exports = function(RED) {
                     } else if (extraCommands.includes(message.payload) && device.lastState.playerState ){
                         let currentPosition = device.lastState.playerState.progress;
                         let duration = device.lastState.playerState.duration;
+                        let currentVolume = device.lastState.volume;
+                        debugMessage('current volume: '+ currentVolume);
                         if (message.payload == 'forward'){
                                 let targetPosition = currentPosition + 10
                                 if (targetPosition < duration) {
@@ -388,6 +395,27 @@ module.exports = function(RED) {
                                         "position": 0
                                     }] 
                                 }
+                            } else if (message.payload == 'volumeup') {
+                                debugMessage(currentVolume);
+                                if (currentVolume < 1.0) {
+                                    return [{
+                                        "command": "setVolume",
+                                        "volume": currentVolume + 0.1
+                                    }] 
+                                }
+                            } else if (message.payload == 'volumedown') {
+                                debugMessage(currentVolume);
+                                if (currentVolume > 0.0) {
+                                    return [{
+                                        "command": "setVolume",
+                                        "volume": currentVolume - 0.1
+                                    }] 
+                                }
+                            } else if (message.payload == 'volume') {
+                                return [{
+                                    "command": "setVolume",
+                                    "volume": parseFloat(message.level)
+                                }] 
                             }
 
                     } else {
@@ -406,7 +434,8 @@ module.exports = function(RED) {
                     let result =[];
                     if (message.stopListening) {device.waitForListening = true}
                     if (message.pauseMusic && device.lastState.playing) {
-                        messageConstructor('command', {'payload': 'stop'}).forEach(item => result.push(item))
+                        //messageConstructor('command', {'payload': 'stop'}).forEach(item => result.push(item))
+                        sendMessage(device.id, 'command', {payload: 'stop'});
                        device.playAfterTTS = true
                         }
                     if (!message.volume){
@@ -416,6 +445,8 @@ module.exports = function(RED) {
                         })
 
                     } else {
+                        device.savedVolumeLevel = device.lastState.volume;
+                        device.waitForIdle = true;
                         result.push({
                             "command" : "setVolume",
                             "volume" : parseFloat(message.volume)
@@ -461,6 +492,10 @@ module.exports = function(RED) {
                                         return messageConstructor('command', {'payload': 'play'})
                                     }
                                 }
+                            case '{"VolumeSelector":1}':
+                                return messageConstructor('command', {'payload': 'volumedown'}, device)
+                            case '{"VolumeSelector":0}':
+                                return messageConstructor('command', {'payload': 'volumeup'}, device)
                             default:
                                 debugMessage('unknown command')
                                 return messageConstructor('command', {'payload': 'ping'})
@@ -469,6 +504,8 @@ module.exports = function(RED) {
                     } else {
                         return messageConstructor('command', {'payload': 'ping'})
                     }
+                case 'volume':
+                    return[] 
                 case 'raw': 
                     return [message.payload];
                 case 'stopListening': 
@@ -653,11 +690,17 @@ module.exports = function(RED) {
             sendMessage(device.id, 'command', {payload: 'play'});
             device.playAfterTTS = false;
         }
+        function onSetVolume(device) {
+            debugMessage(`device.savedVolumeLevel: ${device.savedVolumeLevel}, device.waitForIdle: ${device.waitForIdle}`);
+            if (device.savedVolumeLevel) { sendMessage(device.id, 'command',{payload: 'volume', level: device.savedVolumeLevel});
+            }
+            device.waitForIdle = false;
+            //if (phrase.length > 0 && device.lastState.aliceState != 'SPEAKING') {sendMessage(device.id, 'tts', {payload: phrase, stopListening: true});}
+        }
         function onStopPlay(device, phrase) {
             sendMessage(device.id, 'command', {payload: 'stop'});
             if (phrase.length > 0 && device.lastState.aliceState != 'SPEAKING') {sendMessage(device.id, 'tts', {payload: phrase, stopListening: true});}
-        }
-        
+        } 
         function onClose() {
             clearInterval(node.interval);
             node.deviceList = [];
@@ -693,7 +736,7 @@ module.exports = function(RED) {
         });
         
         // main init
-        if (typeof(node.token) != 'undefined') {
+        if (typeof(node.token) !== 'undefined') {
             getDevices(node.token);
             node.interval = setInterval(getDevices, 60000, node.token);
         }

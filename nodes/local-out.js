@@ -25,7 +25,10 @@ module.exports = function(RED) {
             if (node.stopListening) {data.stopListening = node.stopListening}
             if (node.noTrackPhrase) {data.noTrackPhrase = node.noTrackPhrase}
             if (node.pauseMusic) {data.pauseMusic = node.pauseMusic}
-            if (node.station) {node.controller.sendMessage(node.station, node.input, data)}
+            if (node.station) {
+                node.controller.sendMessage(node.station, node.input, data);
+                debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
+            }
         });
 
         node.onStatus = function(data) {
