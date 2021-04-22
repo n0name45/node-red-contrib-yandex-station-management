@@ -110,8 +110,10 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 - Fixed volume level. Позволяет произносить фразу заданной громкостью. Если не выбрано, то фраза произносится с текущим уровнем громкости. После произнесения уровень громкости вернется в изначальный.
 - Prevent listening. Если выбрано, то колонка после воспроизведения не "слушает", что ей ответят.
 - Pause while TTS. Ставит воспроизведение плеера на паузу на время речи. Воспроизведение будет продолжено, только если что-то играло на момент поступления команды.
-
 Все опции комбинируемы между собой.
+
+Работают голосовые [спецэффекты](https://yandex.ru/dev/dialogs/alice/doc/speech-effects-docpage/),[дополнительные голоса](https://yandex.ru/dev/dialogs/alice/doc/speech-effects-docpage/) и [звуки](https://yandex.ru/dev/dialogs/alice/doc/sounds-docpage/), при этом отправка производится в ввиде строки. Например, "смелость sil <[500]> город+а берёт"
+
 
 #### Homekit Formatted.
 Ловит вывод от Homekit от устройств SmartSpeaker(вкл/выкл) и Television(вкл/выкл + пульт) модуля [NRCHB](https://github.com/NRCHKB/node-red-contrib-homekit-bridged).
@@ -377,6 +379,8 @@ A: В меню Node-Red есть пункт Import, а в нем раздел Ex
     - Yandex Mini(tested)
     - Yandex Station Max(tested)
     - Yandex Module(not tested)
+    - JBL Link Music(not tested)
+    - JBL Link Portable(tested)
 
 ## Installation
     Run the following command in your Node-RED user directory - typically `~/.node-red`

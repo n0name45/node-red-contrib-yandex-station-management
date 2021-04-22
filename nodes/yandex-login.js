@@ -361,7 +361,7 @@ module.exports = function(RED) {
 
         function messageConstructor(messageType, message, device){
             let commands = ['play', 'stop', 'next', 'prev', 'ping'];
-            let extraCommands = ['forward', 'backward', 'volumeup', 'volumedown', "volume"];
+            let extraCommands = ['forward', 'backward', 'volumeup', 'volumedown', 'volume'];
             switch(messageType){
                 case 'command':
                     if (commands.includes(message.payload)){
@@ -418,7 +418,7 @@ module.exports = function(RED) {
                             }
 
                     } else {
-                        debugMessage(`Bad command!`)
+                        debugMessage(`Bad command ${message.payload}`)
                         //node.error(`You can send commands in msg.payload from list as String ${commands + extraCommands}`);
                         return [{"command": "ping"}];
                     }
@@ -439,8 +439,24 @@ module.exports = function(RED) {
                         }
                     if (!message.volume){
                         result.push({
-                            "command" : "sendText",
-                            "text" : `Повтори за мной '${message.payload}'`
+                            "command": "serverAction",
+                            "serverActionEventPayload": {
+                                "type": "server_action",
+                                "name": "update_form",
+                                "payload": {
+                                    "form_update": {
+                                        "name": "personal_assistant.scenarios.repeat_after_me",
+                                        "slots": [
+                                            {
+                                                "type": "string",
+                                                "name": "request",
+                                                "value": message.payload
+                                            }
+                                        ]
+                                    },
+                                    "resubmit": true
+                                }
+                            }
                         })
 
                     } else {
@@ -450,9 +466,25 @@ module.exports = function(RED) {
                             "command" : "setVolume",
                             "volume" : parseFloat(message.volume)
                         },
-                            {
-                            "command" : "sendText",
-                            "text" : `Повтори за мной '${message.payload}'`
+                        {
+                            "command": "serverAction",
+                            "serverActionEventPayload": {
+                                "type": "server_action",
+                                "name": "update_form",
+                                "payload": {
+                                    "form_update": {
+                                        "name": "personal_assistant.scenarios.repeat_after_me",
+                                        "slots": [
+                                            {
+                                                "type": "string",
+                                                "name": "request",
+                                                "value": message.payload
+                                            }
+                                        ]
+                                    },
+                                    "resubmit": true
+                                }
+                            }
                         })
                     }
                     return result;
@@ -503,8 +535,6 @@ module.exports = function(RED) {
                     } else {
                         return messageConstructor('command', {'payload': 'ping'})
                     }
-                case 'volume':
-                    return[] 
                 case 'raw': 
                     if (Array.isArray(message.payload)) { return message.payload }
                     return [message.payload];
@@ -691,8 +721,12 @@ module.exports = function(RED) {
             device.playAfterTTS = false;
         }
         function onSetVolume(device) {
-            debugMessage(`device.savedVolumeLevel: ${device.savedVolumeLevel}, device.waitForIdle: ${device.waitForIdle}`);
-            if (device.savedVolumeLevel) { sendMessage(device.id, 'command',{payload: 'volume', level: device.savedVolumeLevel});
+            //debugMessage(`device.savedVolumeLevel: ${device.savedVolumeLevel}, device.waitForIdle: ${device.waitForIdle}`);
+            if (device.savedVolumeLevel) { sendMessage(device.id, 'raw',{payload: {
+                    "command": "setVolume",
+                    "volume": parseFloat(device.savedVolumeLevel)
+                    } 
+                });
             }
             device.waitForIdle = false;
             //if (phrase.length > 0 && device.lastState.aliceState != 'SPEAKING') {sendMessage(device.id, 'tts', {payload: phrase, stopListening: true});}
