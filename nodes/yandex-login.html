@@ -53,7 +53,7 @@
             data = {...data, captcha_key, captcha_answer}
         }
 
-        $.post( url, data, 'json')
+        $.post( url, data )
         .done(function( res ) {
             if (res.access_token) {
                 let str = `Success`;
