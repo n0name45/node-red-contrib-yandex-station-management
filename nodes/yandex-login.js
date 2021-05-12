@@ -17,6 +17,7 @@ module.exports = function(RED) {
         node.deviceList = [];
         node.readyList = [];
         node.activeStationList = [];
+        //node.skipCloudDevices = false;
         
        
         node.on('stopListening', onStopListening);
@@ -63,8 +64,16 @@ module.exports = function(RED) {
                         'Authorization': 'Oauth ' + token 
                     } 
                 };
-        
-      
+// вариант для снижения частоты запросов на серверы ЯНдекса для обновления списка устройств. Требует тестирования. 
+/*             if (node.skipCloudDevices) {
+                discoverDevices(node.deviceList)
+                .then(() => {
+                    //debugMessage(`calling processing for ${node.deviceList.length} devices`);
+                    deviceListProcessing(node.deviceList)
+                   
+                });
+                return node.deviceList;
+            } */
             await rp(options)
             .then(function(response)
             {
