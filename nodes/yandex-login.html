@@ -2,24 +2,92 @@
     RED.nodes.registerType('yandex-login',{
         category: 'config',
         credentials: {
-            token: {type:"text"}
+            token: { type:"text", required: true }
         },
         defaults: {
-            name: {value: null,
-                required: true}, 
-            debugFlag: {
-                value: false
-            }
+            name: { value: null },
+            debugFlag: { value: false }
         },
-        label: function(){ return this.name  || "YandexLogin" }
+        label: function() { return this.name  || "YandexLogin" },
+        oneditprepare: function () {
+            let node = this;
+
+            $('#oauth-button').on('click', function () {
+                let username = $('#oauth-username').val();
+                let password = $('#oauth-password').val();
+                let captcha_key = $('#oauth-captcha_key').val();
+                let captcha_answer = $('#oauth-captcha_answer').val();
+
+                getoAuthToken(username, password, captcha_key, captcha_answer);
+            });
+        }
     });
+
+
+    function getoAuthToken(username, password, captcha_key, captcha_answer) {
+        const url_oauth     = 'https://oauth.yandex.com';
+        const url           = `${url_oauth}/token`;
+        const client_id     = '23cabbbdc6cd418abb4b39c32c41195d';
+        const client_secret = '53bc75238f0c4d08a118e51fe9203300';
+
+        $('#oauth-status').show();
+        $('#oauth-status').html('Waiting ...').css("color", "black");
+
+        $('#oauth-captcha').hide();
+        $('#oauth-captcha_key, #oauth-captcha_answer').val('');
+
+        if (!username || !password) {
+            $('#oauth-status').html('Empty username or password').css("color", "red");
+            return;
+        }
+
+        let data = {
+            grant_type: 'password',
+            client_id: client_id,
+            client_secret: client_secret,
+            username: username,
+            password: password
+        };
+
+        if (captcha_key && captcha_answer) {
+            data = {...data, captcha_key, captcha_answer}
+        }
+
+        $.post( url, data )
+        .done(function( res ) {
+            if (res.access_token) {
+                let str = `Success`;
+                $('#oauth-status').html(str).css("color", "black");
+
+                $('#node-config-input-token').val(res.access_token);
+                $('#oauth-username, #oauth-password').val('');
+            }
+        })
+        .fail(function( res ) {
+            if (res.responseJSON.error_description.match(/not valid/gi)) {
+                let str = `${res.responseJSON.error_description} (more <a href='https://github.com/AlexxIT/YandexStation/issues/103' target='_blank'>issues/103</a>)`;
+                $('#oauth-status').html(str).css("color", "red");
+            }
+            else if (res.responseJSON.error_description.match(/CAPTCHA/gi)) {
+                let str = `<img src='${res.responseJSON.x_captcha_url}'>`;
+                $('#oauth-status').html(str);
+
+                $('#oauth-captcha').show();
+                $('#oauth-captcha_key').val(res.responseJSON.x_captcha_key);
+            }
+            else if (res.responseJSON.error_description) {
+                let str = res.responseJSON.error_description;
+                $('#oauth-status').html(str).css("color", "red");
+            }
+        });
+    }
 </script>
 
 <script type="text/html" data-template-name="yandex-login">
     <style>
         .label-long {min-width: 150px;width: 20%;}
         .online {display: inline-block; width: auto; vertical-align: middle;}
-    </style> 
+    </style>
     <div class="form-row">
         <label for="node-config-input-name"><i class="fa fa-bookmark"></i> Name </label>
         <input type="text" id="node-config-input-name">
@@ -30,6 +98,31 @@
     </div>
     <div class="form-row">
         <label for='node-config-input-debugFlag' style="min-width: 110px; width: 20%;"><i class='fa fa-share-square'>Debug</i></label>
-        <input type="checkbox" id="node-config-input-debugFlag" style="display: inline-block; width: auto; vertical-align: top;"> 
+        <input type="checkbox" id="node-config-input-debugFlag" style="display: inline-block; width: auto; vertical-align: top;">
+    </div>
+    <div>
+        <span style="font-weight: bold; margin: 4px 0;"> Get oAuthToken (Experimental)</span>
+        <hr style="font-weight: bold; margin: 10px 0;"  \>
+    </div>
+    <div class="form-row">
+        <label for="oauth-username"><i class="fa fa-bookmark"></i> Username </label>
+        <input type="text" id="oauth-username">
+    </div>
+    <div class="form-row">
+        <label for="oauth-password"><i class="fa fa-bookmark"></i> Password </label>
+        <input type="password" id="oauth-password">
+    </div>
+    <div style="text-align-last: center; margin: 4px 0;">
+        <span style="display: none;" id="oauth-status"></span>
+    </div>
+    <div class="form-row" style="display: none;" id="oauth-captcha">
+        <label for="oauth-captcha_answer"><i class="fa fa-bookmark"></i> Captcha </label>
+        <input type="text" id="oauth-captcha_answer">
+        <input type="hidden" id="oauth-captcha_key">
+    </div>
+    <div class="form-row">
+        <span class="button-group" style="float: right; margin-right: 30px;">
+            <button type="button" id="oauth-button" class="red-ui-button toggle status-button-group">Get oAuthToken</button>
+        </span>
     </div>
 </script>
