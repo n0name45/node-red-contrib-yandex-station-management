@@ -16,27 +16,27 @@ module.exports = function(RED) {
                 node.log(text);
             }
         }
-        function preparePayload(message){
-            let payload = {};
+        function preparePayload(message,inputMsg){
+            //let payload = {};
             if (node.output == 'status') {
-                   payload = {'payload': message}
+                inputMsg.payload = message;
             } else if (node.output == 'homekit') {
                 if (node.homekitFormat == 'speaker') {
-                    (message.playerState)? payload = {'payload': {
+                    (message.playerState)? inputMsg.payload = {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
                         "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
-                    } }:payload = {'payload': {
+                    } :inputMsg.payload =  {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
                         "ConfiguredName": `No Artist - No Track`
-                    } }
+                    } 
                 }else if (node.homekitFormat == 'tv') {
-                    payload = {'payload': {
+                    inputMsg.payload = {
                         "Active": (message.playing) ? 1 : 0
                     } 
-                    } 
+                    
                 }
             }
-        return payload;
+        return inputMsg;
 
         }
         
@@ -47,9 +47,9 @@ module.exports = function(RED) {
             //node.log('new status ' + data)
             }
          }
-        node.onInput = function(){
-            debugMessage('input message');
-            ( 'aliceState' in node.lastState )?node.send(preparePayload(node.lastState)):node.send({'payload': {}})
+        node.onInput = function(msg, send, done){
+            debugMessage('current state: ' + JSON.stringify(node.lastState));
+            ( 'aliceState' in node.lastState )?node.send(preparePayload(node.lastState,msg)):node.send(msg)
         }
         node.onMessage = function(message){
             node.lastState = message;
