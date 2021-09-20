@@ -10,7 +10,7 @@ module.exports = function(RED) {
         node.lastState = {};
         node.status({});
 
-    
+
         function debugMessage(text){
             if (node.debugFlag) {
                 node.log(text);
@@ -22,24 +22,31 @@ module.exports = function(RED) {
                 inputMsg.payload = message;
             } else if (node.output == 'homekit') {
                 if (node.homekitFormat == 'speaker') {
+                    let ConfiguredName = `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`;
+                    let title = `${message.playerState.title}`;
+                    if (ConfiguredName.length > 64 && title.length > 0 && title.length <= 64) {
+                        ConfiguredName = title;
+                    } else {
+                        ConfiguredName = title.substr(0, 61) + `...`;
+                    }
                     (message.playerState)? inputMsg.payload = {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
+                        "ConfiguredName": ConfiguredName
                     } :inputMsg.payload =  {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": `No Artist - No Track`
-                    } 
+                        "ConfiguredName": `No Artist - No Track Name`
+                    }
                 }else if (node.homekitFormat == 'tv') {
                     inputMsg.payload = {
                         "Active": (message.playing) ? 1 : 0
-                    } 
-                    
+                    }
+
                 }
             }
         return inputMsg;
 
         }
-        
+
 
         node.onStatus = function(data) {
             if (data) {
@@ -57,7 +64,7 @@ module.exports = function(RED) {
         node.onClose = function(){
             node.controller.removeListener(`message_${node.station}`, node.onMessage)
         }
-        
+
         node.on('input', node.onInput);
 
         node.on('close', node.onClose)

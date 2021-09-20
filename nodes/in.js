@@ -10,9 +10,9 @@ module.exports = function(RED) {
         node.homekitFormat = config.homekitFormat;
         node.lastMessage = {};
         node.status({});
-        
 
-       
+
+
         debugMessage(`Node settings: ID: ${node.station}, Output Format: ${node.output}, HK: ${node.homekitFormat}`);
         function debugMessage(text){
             if (node.debugFlag) {
@@ -27,18 +27,25 @@ module.exports = function(RED) {
                    payload = {'payload': message}
             } else if (node.output == 'homekit') {
                 if (node.homekitFormat == 'speaker') {
+                    let ConfiguredName = `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`;
+                    let title = `${message.playerState.title}`;
+                    if (ConfiguredName.length > 64 && title.length > 0 && title.length <= 64) {
+                        ConfiguredName = title;
+                    } else {
+                        ConfiguredName = title.substr(0, 61) + `...`;
+                    }
                     (message.playerState)? payload = {'payload': {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`
+                        "ConfiguredName": ConfiguredName
                     } }:payload = {'payload': {
                         "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": `No Artists - No Track`
+                        "ConfiguredName": `No Artists - No Track Name`
                     } }
                 }else if (node.homekitFormat == 'tv') {
                     payload = {'payload': {
                         "Active": (message.playing) ? 1 : 0
-                    } 
-                    } 
+                    }
+                    }
                 }
             }
         return payload;
@@ -50,8 +57,8 @@ module.exports = function(RED) {
                 if ((JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload))) {
                     node.send(message)
                     node.lastMessage = message
-                    debugMessage(`Sended message to HK: ${JSON.stringify(message)}`);     
-                
+                    debugMessage(`Sended message to HK: ${JSON.stringify(message)}`);
+
                 }
             } else {
                 node.send(message);
@@ -77,7 +84,7 @@ module.exports = function(RED) {
             node.controller.on(`message_${node.station}`, node.onMessage);
             node.controller.on(`statusUpdate_${node.station}`, node.onStatus);
         }
-       
+
         node.on('close', node.onClose);
 
 
