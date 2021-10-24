@@ -1,0 +1,68 @@
+{
+    "label": {
+        "name": "Название",
+        "text": "Текст",
+        "effect": "Эффект",
+        "login": "Логин",
+        "station": "Станция",
+        "voice": "Голос",
+        "debug": "Дебаг",
+        "command": "Команда",
+        "volume": "Громкость",
+        "prevent_listening": "Не ждать ответ",
+        "pause_while_tts": "Плеер на паузу",
+        "default_command": "Команда"
+    },
+    "placeholder": {
+        "name": "Название",
+        "play_music": "Включи музыку"
+    },
+    "command": {
+        "player": "Плеер",
+        "tts": "Синтез речи из текста",
+        "voice": "Голосовая команда",
+        "stop_listening": "Перестать слушать",
+        "homekit": "Homekit",
+        "raw": "Сырая команда"
+    },
+    "voice": {
+        "default": "Алиса (стандартный)",
+        "alena": "Алёна (alena)",
+        "alyss": "Элис (alyss)",
+        "anton_samokhvalov": "Антон Самохвалов (anton_samokhvalov)",
+        "dude": "Чувак (dude)",
+        "ermil": "Ермил (ermil)",
+        "ermilov": "Ermilov (ermilov)",
+        "ermil_with_tuning": "Ермил Т (ermil_with_tuning)",
+        "erkanyavas": "Ерканявас (erkanyavas)",
+        "filipp": "Филипп (filipp)",
+        "jane": "Джейн (jane)",
+        "kolya": "Коля (kolya)",
+        "kostya": "Костя (kostya)",
+        "levitan": "Левитан (levitan)",
+        "nastya": "Настя (nastya)",
+        "nick": "Ник (nick)",
+        "oksana": "Оксана (oksana)",
+        "omazh": "Омаж (omazh)",
+        "robot": "Робот (robot)",
+        "sasha": "Саша (sasha)",
+        "silaerkan": "Силаеркан (silaerkan)",
+        "smoky": "Смоки (smoky)",
+        "tanya": "Таня (tanya)",
+        "tatyana_abramova": "Татьяна Абрамова (tatyana_abramova)",
+        "zahar": "Захар (zahar)",
+        "zhenya": "Женя (zhenya)",
+        "zombie": "Зомби (zombie)",
+        "voicesearch": "voicesearch"
+    },
+    "effect": {
+        "none": "Без эффекта",
+        "behind_the_wall": "Из-за стены (behind_the_wall)",
+        "hamster": "Хомяк (hamster)",
+        "megaphone": "Мегафон (megaphone)",
+        "pitch_down": "Низкий (pitch_down)",
+        "psychodelic": "Психоделический (psychodelic)",
+        "pulse": "С прерыванием (pulse)",
+        "train_announce": "Громкоговоритель (train_announce)"
+    }
+}

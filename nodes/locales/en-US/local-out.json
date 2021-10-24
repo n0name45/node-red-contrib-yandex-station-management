@@ -1,0 +1,71 @@
+{
+    "label": {
+        "name": "Name",
+        "text": "Text",
+        "effect": "Effect",
+        "login": "Login",
+        "station": "Station",
+        "voice": "Voice",
+        "debug": "Debug",
+        "command": "Command",
+        "volume": "Volume",
+        "prevent_listening": "Prevent listening",
+        "pause_while_tts": "Pause while TTS",
+        "default_command": "Default command"
+    },
+    "placeholder": {
+        "name": "Name",
+        "play_music": "Play music"
+    },
+    "command": {
+        "player": "Player",
+        "tts": "Text-to-Speech",
+        "voice": "Voice",
+        "raw": "Raw",
+        "stop_listening": "Stop listening",
+        "homekit": "Homekit"
+    },
+    "voice": {
+        "default": "Default",
+        "alena": "Alena",
+        "alyss": "Alyss",
+        "anton_samokhvalov": "Anton Samokhvalov",
+        "dude": "Dude",
+        "ermil": "Ermil",
+        "ermilov": "Ermilov",
+        "ermil_with_tuning": "Ermil (tuning)",
+        "erkanyavas": "Erkanyavas",
+        "filipp": "Filipp",
+        "jane": "Jane",
+        "kolya": "Kolya",
+        "kostya": "Kostya",
+        "levitan": "Levitan",
+        "nastya": "Nastya",
+        "nick": "Nick",
+        "oksana": "Oksana",
+        "omazh": "Omazh",
+        "robot": "Robot",
+        "sasha": "Sasha",
+        "silaerkan": "Silaerkan",
+        "smoky": "Smoky",
+        "tanya": "Tanya",
+        "tatyana_abramova": "Tatyana Abramova",
+        "zahar": "Zahar",
+        "zhenya": "Zhenya",
+        "zombie": "Zombie",
+        "voicesearch": "Voicesearch"
+    },
+    "effect": {
+        "none": "None",
+        "behind_the_wall": "behind_the_wall",
+        "hamster": "hamster",
+        "megaphone": "megaphone",
+        "pitch_down": "pitch_down",
+        "psychodelic": "psychodelic",
+        "pulse": "pulse",
+        "train_announce": "train_announce"
+    }
+}
+
+
+
