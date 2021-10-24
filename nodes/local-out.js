@@ -14,6 +14,7 @@ module.exports = function(RED) {
         node.noTrackPhrase = config.noTrack;
         node.pauseMusic = config.pauseMusic;
         node.ttsVoice = config.ttsVoice;
+        node.ttsEffect = config.ttsEffect;
         node.status({});
 
         function debugMessage(text){
@@ -38,6 +39,7 @@ module.exports = function(RED) {
                 //redefine options from input
                 if ("volume" in input) {data.volume = input.volume/100}
                 if ("voice" in input) {node.ttsVoice = input.voice}
+                if ("effect" in input) {node.ttsEffect = input.effect}
                 if ("prevent_listening" in input) {node.noTrackPhrase = input.prevent_listening}
                 if ("pause_music" in input) {data.pauseMusic = input.pause_music}
 
@@ -72,8 +74,15 @@ module.exports = function(RED) {
                 data.payload = payload;
 
                 if (node.ttsVoice) {
-                    data.payload = "<speaker voice='"+node.voice+"'>" + data.payload;
+                    data.payload = "<speaker voice='"+node.ttsVoice+"'>" + data.payload;
                 }
+                if (node.ttsEffect) {
+                    let effectsArr = node.ttsEffect.split(',');
+                    for (let ind in effectsArr) {
+                        data.payload = "<speaker effect='" + effectsArr[ind] + "'>" + data.payload;
+                    }
+                }
+
                 node.controller.sendMessage(node.station, node.input, data);
                 debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
             } else {

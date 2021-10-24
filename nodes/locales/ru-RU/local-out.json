@@ -2,6 +2,7 @@
     "label": {
         "name": "Название",
         "text": "Текст",
+        "effect": "Эффект",
         "login": "Логин",
         "station": "Станция",
         "voice": "Голос",
@@ -53,5 +54,15 @@
         "zhenya": "Женя (zhenya)",
         "zombie": "Зомби (zombie)",
         "voicesearch": "voicesearch"
+    },
+    "effect": {
+        "none": "Без эффекта",
+        "behind_the_wall": "Из-за стены (behind_the_wall)",
+        "hamster": "Хомяк (hamster)",
+        "megaphone": "Мегафон (megaphone)",
+        "pitch_down": "Низкий (pitch_down)",
+        "psychodelic": "Психоделический (psychodelic)",
+        "pulse": "С прерыванием (pulse)",
+        "train_announce": "Громкоговоритель (train_announce)"
     }
 }

@@ -2,6 +2,7 @@
     "label": {
         "name": "Name",
         "text": "Text",
+        "effect": "Effect",
         "login": "Login",
         "station": "Station",
         "voice": "Voice",
@@ -53,6 +54,16 @@
         "zhenya": "Zhenya",
         "zombie": "Zombie",
         "voicesearch": "Voicesearch"
+    },
+    "effect": {
+        "none": "None",
+        "behind_the_wall": "behind_the_wall",
+        "hamster": "hamster",
+        "megaphone": "megaphone",
+        "pitch_down": "pitch_down",
+        "psychodelic": "psychodelic",
+        "pulse": "pulse",
+        "train_announce": "train_announce"
     }
 }
 

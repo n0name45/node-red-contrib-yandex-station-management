@@ -39,6 +39,10 @@
       ttsVoice: {
         value: null,
       },
+      ttsEffect: {
+        value: null,
+        required: false,
+      },
     },
     inputs: 1,
     outputs: 0,
@@ -59,6 +63,23 @@
       value: 'payload',
       typeField: $('#node-input-payloadType'),
     });
+
+
+
+    $("#node-input-ttsEffect").typedInput({type:"ttsEffect", types:[{
+        value: 'ttsEffect',
+        multiple: false,
+        options: [
+          { value: "0", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.none")},
+          { value: "behind_the_wall", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.behind_the_wall")},
+          { value: "hamster", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.hamster")},
+          { value: "megaphone", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.megaphone")},
+          { value: "pitch_down", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.pitch_down")},
+          { value: "psychodelic", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.psychodelic")},
+          { value: "pulse", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.pulse")},
+          { value: "train_announce", label: RED._("node-red-contrib-yandex-station-management/alice-local-out:effect.train_announce")}
+        ]
+      }]})
 
     let config = RED.nodes.node($('#node-input-token').val());
     let selector = $('#node-input-station_id');
@@ -209,6 +230,13 @@
                 </select>
             </div>
         </div>
+    </div>
+    <div class="form-row command_options command_options-tts">
+        <label for="node-input-ttsEffect" class="label l-width" style="vertical-align: bottom;">
+            <i class="fa fa-magic"></i> <span data-i18n="label.effect"></span>
+            <div class="red-ui-debug-msg-type-string" style="font-size: 10px;">msg.effect</div></label>
+        </label>
+        <input type="text" id="node-input-ttsEffect">
     </div>
     <div class="form-row command_options command_options-tts">
         <label for="node-input-volume" class="label label-long">
