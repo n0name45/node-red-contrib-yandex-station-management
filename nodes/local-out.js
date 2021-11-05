@@ -28,6 +28,7 @@ module.exports = function(RED) {
 
             if (node.station) {
                 var data = {};
+                data.payload = input.payload;
 
                 //apply node's config
                 if (node.volumeFlag) {data.volume = node.volume/100}
@@ -43,43 +44,46 @@ module.exports = function(RED) {
                 if ("prevent_listening" in input) {node.noTrackPhrase = input.prevent_listening}
                 if ("pause_music" in input) {data.pauseMusic = input.pause_music}
 
-                let payload;
-                switch (node.config.payloadType) {
-                    case 'flow':
-                    case 'global': {
-                        RED.util.evaluateNodeProperty(node.config.payload, node.config.payloadType, this, message, function (error, result) {
-                            if (error) {
-                                node.error(error, message);
-                            } else {
-                                payload = result;
-                            }
-                        });
-                        break;
-                    }
-                    case 'str': {
-                        payload = node.config.payload;
-                        break;
-                    }
-                    case 'json': {
-                        var arr = JSON.parse(node.config.payload);
-                        payload = arr[(Math.random() * arr.length) | 0];
-                        break;
-                    }
-                    case 'msg':
-                    default: {
-                        payload = input[node.config.payload];
-                        break;
-                    }
-                }
-                data.payload = payload;
 
-                if (node.ttsVoice) {
-                    data.payload = "<speaker voice='"+node.ttsVoice+"'>" + data.payload;
-                }
-                if (node.ttsEffect) {
-                    let effectsArr = node.ttsEffect.split(',');
-                    for (let ind in effectsArr) {
-                        data.payload = "<speaker effect='" + effectsArr[ind] + "'>" + data.payload;
+                if ('tts' === node.input) {
+                    let payload;
+                    switch (node.config.payloadType) {
+                        case 'flow':
+                        case 'global': {
+                            RED.util.evaluateNodeProperty(node.config.payload, node.config.payloadType, this, message, function (error, result) {
+                                if (error) {
+                                    node.error(error, message);
+                                } else {
+                                    payload = result;
+                                }
+                            });
+                            break;
+                        }
+                        case 'str': {
+                            payload = node.config.payload;
+                            break;
+                        }
+                        case 'json': {
+                            var arr = JSON.parse(node.config.payload);
+                            payload = arr[(Math.random() * arr.length) | 0];
+                            break;
+                        }
+                        case 'msg':
+                        default: {
+                            payload = input[node.config.payload];
+                            break;
+                        }
+                    }
+                    data.payload = payload;
+
+                    if (node.ttsVoice) {
+                        data.payload = "<speaker voice='" + node.ttsVoice + "'>" + data.payload;
+                    }
+                    if (node.ttsEffect) {
+                        let effectsArr = node.ttsEffect.split(',');
+                        for (let ind in effectsArr) {
+                            data.payload = "<speaker effect='" + effectsArr[ind] + "'>" + data.payload;
+                        }
                     }
                 }
 
@@ -96,10 +100,10 @@ module.exports = function(RED) {
                 node.status({fill: data.color,shape:"dot",text: data.text});
             }
         }
-       
+
 
         node.on('close', () => {
-            node.controller.removeListener(`statusUpdate_${node.station}`, node.onStatus) 
+            node.controller.removeListener(`statusUpdate_${node.station}`, node.onStatus)
         });
 
         if (node.controller) {
