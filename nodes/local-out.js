@@ -28,7 +28,7 @@ module.exports = function(RED) {
 
             if (node.station) {
                 var data = {};
-                data.payload = input.payload;
+                //data.payload = input.payload;
 
                 //apply node's config
                 if (node.volumeFlag) {data.volume = node.volume/100}
@@ -48,47 +48,70 @@ module.exports = function(RED) {
                 if ('tts' === node.input) {
                     let payload;
                     switch (node.config.payloadType) {
-                        case 'flow':
-                        case 'global': {
-                            RED.util.evaluateNodeProperty(node.config.payload, node.config.payloadType, this, message, function (error, result) {
-                                if (error) {
-                                    node.error(error, message);
-                                } else {
-                                    payload = result;
-                                }
-                            });
+                        case 'flow': {
+                            if (typeof(node.context().flow.get(node.config.payload)) != "undefined") {
+                                payload = node.context().flow.get(node.config.payload)
+                            } else {
+                                debugMessage('Empty flow context with key '+ node.config.payload)
+                            }
                             break;
+                        }
+                        case 'global': {
+                            if (typeof(node.context().global.get(node.config.payload)) != "undefined") {
+                                payload = node.context().global.get(node.config.payload)
+                            } else {
+                                debugMessage('Empty global context with key '+ node.config.payload)
+                            }
+                            break;
+                        
                         }
                         case 'str': {
                             payload = node.config.payload;
                             break;
                         }
                         case 'json': {
-                            var arr = JSON.parse(node.config.payload);
-                            payload = arr[(Math.random() * arr.length) | 0];
+                            let arr = [];
+                            
+                            try {
+                                arr = JSON.parse(node.config.payload)
+                                payload = arr[(Math.random() * arr.length) | 0];
+                            } catch (e) {
+                                debugMessage("Error on parsing input JSON: "+ e);
+                            }
+
                             break;
                         }
-                        case 'msg':
+                        case 'msg': {
+                            payload = node.input[node.config.payload]
+                        }
                         default: {
                             payload = input[node.config.payload];
                             break;
                         }
                     }
-                    data.payload = payload;
-
-                    if (node.ttsVoice) {
-                        data.payload = "<speaker voice='" + node.ttsVoice + "'>" + data.payload;
-                    }
-                    if (node.ttsEffect) {
-                        let effectsArr = node.ttsEffect.split(',');
-                        for (let ind in effectsArr) {
-                            data.payload = "<speaker effect='" + effectsArr[ind] + "'>" + data.payload;
+                    if (typeof(payload) != "undefined" ) { 
+                        data.payload = payload;
+                        if (node.ttsVoice) {
+                            data.payload = "<speaker voice='" + node.ttsVoice + "'>" + data.payload;
                         }
+                        if (node.ttsEffect) {
+                            let effectsArr = node.ttsEffect.split(',');
+                            for (let ind in effectsArr) {
+                                data.payload = "<speaker effect='" + effectsArr[ind] + "'>" + data.payload;
+                            }
+                        }
+                    } else {
+                        data.payload = ""
                     }
+
                 }
 
-                node.controller.sendMessage(node.station, node.input, data);
-                debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
+                if (data.payload.length > 0) {node.controller.sendMessage(node.station, node.input, data)
+                    debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
+                } else {
+                    debugMessage("Nothing to send. Check input and parameters")
+                }
+               
             } else {
                 debugMessage('node.station is empty');
             }
