@@ -45,7 +45,7 @@ module.exports = function(RED) {
                         debugMessage(`Ready event fo ${device.id}`);
                         node.emit(`deviceReady`, device);
                         node.readyList.push({ 'name': device.name,  'id': device.id, 'platform': device.platform, 'address': device.address, 'port': device.port, 'host': device.host, 'parameters': device.parameters});
-                        node.emit('refreshHttp', node.activeStationList, node.readyList)
+                        node.emit('refreshHttp', node.activeStationList, node.readyList);
                         statusUpdate({"color": "yellow", "text": "connecting..."}, device);
                     }
                 }
@@ -122,20 +122,28 @@ module.exports = function(RED) {
             await mDnsSd.discover({
                 name: '_yandexio._tcp.local'
             }).then((result) => {
-                //debugMessage(`Found ${result.length} devices`);
+                debugMessage(`MDNS. Found ${result.length} devices`);
+                node.emit('refreshHttpDNS', result);
                 if (result.length != 0){
                     for (const device of deviceList) {
                         result.forEach(element => {
                             let checkConnType = device.parameters.network || {}
                             //если режим автоопределения адреса или набор параметров пустой, то записывать значния из результатов mdns поиска
                             if (checkConnType.mode == "auto" || JSON.stringify(checkConnType) == "{}") {
-                                let srvEls = element.packet.answers.find(el => el.type == "SRV");
-                                let txtEls = element.packet.answers.find(el => el.type == "TXT");
+                                //need remove to REGEXP!
+                                //let mdnsId = element.fqdn.split("-")[1].split(".")[0];
+                                let srvEls = element.packet.answers.find(el => el.type == "SRV") || element.packet.additionals.find(el => el.type == "SRV");
+                                let txtEls = element.packet.answers.find(el => el.type == "TXT") || element.packet.additionals.find(el => el.type == "TXT");
                                 if (typeof(txtEls) !== 'undefined' ) {
                                     if (txtEls.rdata.deviceId == device.id) {
                                         device.address =  element.address;
                                         device.port = element.service.port;
-                                        device.host = srvEls.rdata.target;
+                                        try {
+                                            device.host = srvEls.rdata.target;
+                                        } catch(e) {
+                                            debugMessage(`Error searching hostname in mDNS answer`)
+                                        }
+                                        
                                     }
                                 }
                             }    
@@ -200,8 +208,8 @@ module.exports = function(RED) {
         function connect(device) {
             //connect only if !device.ws
             //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
-            if (device.connection == true || typeof(device.connection) == "undefined") {
-                debugMessage(`Connecting to device ${device.id}. ws is ${JSON.stringify(device.ws)}`)
+            if ( (device.connection == true || typeof(device.connection) == "undefined") && node.listenerCount(`statusUpdate_${device.id}`) > 0 ) {
+                debugMessage(`Connecting to device ${device.id}. ws is ${JSON.stringify(device.ws)}. Listeners: ` + node.listenerCount(`statusUpdate_${device.id}`));
                 if (!device.ws) {
                     debugMessage('recieving conversation token...');
                     getLocalToken(device)
@@ -246,7 +254,7 @@ module.exports = function(RED) {
                     //}
                 }
             } else {
-                debugMessage(`${device.id} connection is disabled by settings in manager node ${device.manager}`)
+                debugMessage(`${device.id} connection is disabled by settings in manager node ${device.manager} or you have not use any node for this station`)
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
                 device.timer = setTimeout(connect, 60000, device);
 
@@ -758,6 +766,12 @@ module.exports = function(RED) {
                 res.json({"devices": activeList});
             });
         });
+        
+        node.on('refreshHttpDNS', function(dnsList) { 
+            RED.httpAdmin.get("/mdns/"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
+                res.json({"SearchResult": dnsList});
+            });
+        });
         node.on('close', onClose)
 
 
@@ -780,8 +794,9 @@ module.exports = function(RED) {
         
         // main init
         if (typeof(node.token) !== 'undefined') {
+            debugMessage(`Starting server with id ${node.id}`)
             getDevices(node.token);
-            node.interval = setInterval(getDevices, 300000, node.token);
+            node.interval = setInterval(getDevices, 60000, node.token);
         }
 
 

@@ -103,13 +103,15 @@ module.exports = function(RED) {
                     } else {
                         data.payload = ""
                     }
-
-                }
-
-                if (data.payload.length > 0) {node.controller.sendMessage(node.station, node.input, data)
-                    debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
+                    if (data.payload.length > 0) {node.controller.sendMessage(node.station, node.input, data)
+                        debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
+                    } else {
+                        debugMessage("Nothing to send. Check input and parameters")
+                    }
                 } else {
-                    debugMessage("Nothing to send. Check input and parameters")
+                        data.payload = input.payload;
+                        node.controller.sendMessage(node.station, node.input, data);
+                        debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
                 }
                
             } else {
