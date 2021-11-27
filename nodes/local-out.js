@@ -110,6 +110,7 @@ module.exports = function(RED) {
                     }
                 } else {
                         data.payload = input.payload;
+                        data.hap = input.hap;
                         node.controller.sendMessage(node.station, node.input, data);
                         debugMessage(`Sending data: station: ${node.station}, input type: ${node.input}, data: ${JSON.stringify(data)}`);
                 }

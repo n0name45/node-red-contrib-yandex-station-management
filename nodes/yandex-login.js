@@ -283,11 +283,13 @@ module.exports = function(RED) {
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
                 device.pingInterval = setInterval(onPing,300,device);
                 clearTimeout(device.timer);
+                debugMessage(`readyState: ${device.ws.readyState}`)
             });
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 let dataRecieved = JSON.parse(data);
                 device.lastState = dataRecieved.state; 
+                device.fullMessage = JSON.stringify(dataRecieved);
                 //debugMessage(checkSheduler(device, JSON.parse(data).sentTime));
                 node.emit(`message_${device.id}`, device.lastState);
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
@@ -321,6 +323,7 @@ module.exports = function(RED) {
             //device.ws.on('ping', function);
             device.ws.on('close', function close(code, reason){
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
+                debugMessage(`readyState: ${device.ws.readyState}`)
                 device.lastState = {};
                 clearTimeout(device.watchDog);
                     switch(code) {
@@ -507,8 +510,8 @@ module.exports = function(RED) {
                     return result;
                     break;
                 case 'homekit':
-                    debugMessage('HAP: ' + JSON.stringify(message.hap.context) + ' PL: ' + JSON.stringify(message.payload) ); 
-                    if (message.hap.context != undefined) {
+                    debugMessage('HAP: ' + JSON.stringify(message) + ' PL: ' + JSON.stringify(message.payload) ); 
+                    if ("session" in message.hap) {
                         switch(JSON.stringify(message.payload)){
                             case '{"TargetMediaState":1}': 
                             case '{"Active":0}':
@@ -786,7 +789,7 @@ module.exports = function(RED) {
             let device = searchDeviceByID(id);
             if (device) {
 
-                res.json({"id": device.id,"name": device.name, "platform": device.platform, "address": device.address, "port": device.port, "manager": device.manager, "ws": device.ws, "parameters": device.parameters});
+                res.json({"id": device.id,"name": device.name, "platform": device.platform, "address": device.address, "port": device.port, "manager": device.manager, "ws": device.ws, "parameters": device.parameters, "fullMessage": device.fullMessage });
             } else {
                 res.json({"error": 'no device found'});
             }
