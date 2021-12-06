@@ -21,27 +21,32 @@ module.exports = function(RED) {
             if (node.output == 'status') {
                 inputMsg.payload = message;
             } else if (node.output == 'homekit') {
-                if (node.homekitFormat == 'speaker') {
-                    let ConfiguredName = `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`;
-                    let title = `${message.playerState.title}`;
-                    if (ConfiguredName.length > 64 && title.length > 0 && title.length <= 64) {
-                        ConfiguredName = title;
-                    } else {
-                        ConfiguredName = title.substr(0, 61) + `...`;
-                    }
-                    (message.playerState)? inputMsg.payload = {
-                        "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": ConfiguredName
-                    } :inputMsg.payload =  {
-                        "CurrentMediaState": (message.playing) ? 0 : 1,
-                        "ConfiguredName": `No Artist - No Track Name`
-                    }
-                }else if (node.homekitFormat == 'tv') {
-                    inputMsg.payload = {
-                        "Active": (message.playing) ? 1 : 0
-                    }
-
+                try {
+                    if (node.homekitFormat == 'speaker') {
+                        let ConfiguredName = `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`;
+                        let title = `${message.playerState.title}`;
+                        if (ConfiguredName.length > 64 && title.length > 0 && title.length <= 64) {
+                            ConfiguredName = title;
+                        } else {
+                            ConfiguredName = title.substr(0, 61) + `...`;
+                        }
+                        (message.playerState)? inputMsg.payload = {
+                            "CurrentMediaState": (message.playing) ? 0 : 1,
+                            "ConfiguredName": ConfiguredName
+                        } :inputMsg.payload =  {
+                            "CurrentMediaState": (message.playing) ? 0 : 1,
+                            "ConfiguredName": `No Artist - No Track Name`
+                        }
+                    }else if (node.homekitFormat == 'tv') {
+                        inputMsg.payload = {
+                            "Active": (message.playing) ? 1 : 0
+                        }
+    
+                    }   
+                } catch (error) {
+                    debugMessage(`Error while preparing payload: `+ e);
                 }
+
             }
         return inputMsg;
 

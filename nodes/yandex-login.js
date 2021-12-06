@@ -323,7 +323,7 @@ module.exports = function(RED) {
             //device.ws.on('ping', function);
             device.ws.on('close', function close(code, reason){
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
-                debugMessage(`readyState: ${device.ws.readyState}`)
+                //debugMessage(`readyState: ${device.ws.readyState}`)
                 device.lastState = {};
                 clearTimeout(device.watchDog);
                     switch(code) {
