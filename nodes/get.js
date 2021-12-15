@@ -1,4 +1,7 @@
 module.exports = function(RED) {
+    const _ = require('lodash/object');
+    const stationHelper = require('../lib/stationHelper.js');
+
     function AliceLocalGetNode(config) {
         RED.nodes.createNode(this,config);
         let node = this;
@@ -16,42 +19,10 @@ module.exports = function(RED) {
                 node.log(text);
             }
         }
-        function preparePayload(message,inputMsg){
-            //let payload = {};
-            if (node.output == 'status') {
-                inputMsg.payload = message;
-            } else if (node.output == 'homekit') {
-                try {
-                    if (node.homekitFormat == 'speaker') {
-                        let ConfiguredName = `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`;
-                        let title = `${message.playerState.title}`;
-                        if (ConfiguredName.length > 64 && title.length > 0 && title.length <= 64) {
-                            ConfiguredName = title;
-                        } else {
-                            ConfiguredName = title.substr(0, 61) + `...`;
-                        }
-                        (message.playerState)? inputMsg.payload = {
-                            "CurrentMediaState": (message.playing) ? 0 : 1,
-                            "ConfiguredName": ConfiguredName
-                        } :inputMsg.payload =  {
-                            "CurrentMediaState": (message.playing) ? 0 : 1,
-                            "ConfiguredName": `No Artist - No Track Name`
-                        }
-                    }else if (node.homekitFormat == 'tv') {
-                        inputMsg.payload = {
-                            "Active": (message.playing) ? 1 : 0
-                        }
-    
-                    }   
-                } catch (error) {
-                    debugMessage(`Error while preparing payload: `+ e);
-                }
 
-            }
-        return inputMsg;
-
+        function _preparePayload(message, inputMsg) {
+            return _.merge(inputMsg, stationHelper.preparePayload(node, message));
         }
-
 
         node.onStatus = function(data) {
             if (data) {
@@ -61,7 +32,7 @@ module.exports = function(RED) {
          }
         node.onInput = function(msg, send, done){
             debugMessage('current state: ' + JSON.stringify(node.lastState));
-            ( 'aliceState' in node.lastState )?node.send(preparePayload(node.lastState,msg)):node.send(msg)
+            ( 'aliceState' in node.lastState )?node.send(_preparePayload(node.lastState,msg)):node.send(msg)
         }
         node.onMessage = function(message){
             node.lastState = message;
