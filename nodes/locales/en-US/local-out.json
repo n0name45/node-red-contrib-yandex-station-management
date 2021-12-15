@@ -11,6 +11,7 @@
         "volume": "Volume",
         "prevent_listening": "Prevent listening",
         "pause_while_tts": "Pause while TTS",
+        "whisper": "Whisper",
         "default_command": "Default command"
     },
     "placeholder": {

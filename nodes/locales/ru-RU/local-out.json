@@ -11,6 +11,7 @@
         "volume": "Громкость",
         "prevent_listening": "Не ждать ответ",
         "pause_while_tts": "Плеер на паузу",
+        "whisper": "Шёпот",
         "default_command": "Команда"
     },
     "placeholder": {
