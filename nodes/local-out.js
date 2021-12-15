@@ -15,6 +15,7 @@ module.exports = function(RED) {
         node.pauseMusic = config.pauseMusic;
         node.ttsVoice = config.ttsVoice;
         node.ttsEffect = config.ttsEffect;
+        node.whisper = config.whisper;
         node.status({});
 
         function debugMessage(text){
@@ -32,6 +33,7 @@ module.exports = function(RED) {
 
                 //apply node's config
                 if (node.volumeFlag) {data.volume = node.volume/100}
+                if (node.whisper) {data.whisper = node.whisper}
                 if (node.stopListening) {data.stopListening = node.stopListening}
                 if (node.noTrackPhrase) {data.noTrackPhrase = node.noTrackPhrase}
                 if (node.pauseMusic) {data.pauseMusic = node.pauseMusic}
@@ -39,6 +41,7 @@ module.exports = function(RED) {
 
                 //redefine options from input
                 if ("volume" in input) {data.volume = input.volume/100}
+                if ("whisper" in input) {data.whisper = input.whisper?true:false}
                 if ("voice" in input) {node.ttsVoice = input.voice}
                 if ("effect" in input) {node.ttsEffect = input.effect}
                 if ("prevent_listening" in input) {node.noTrackPhrase = input.prevent_listening}
@@ -99,6 +102,10 @@ module.exports = function(RED) {
                             for (let ind in effectsArr) {
                                 data.payload = "<speaker effect='" + effectsArr[ind] + "'>" + data.payload;
                             }
+                        }
+
+                        if (data.whisper) {
+                            data.payload = "<speaker is_whisper='"+data.whisper+"'>" + data.payload;
                         }
                     } else {
                         data.payload = ""

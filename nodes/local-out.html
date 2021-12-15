@@ -36,6 +36,9 @@
         value: false,
       },
       noTrack: {},
+      whisper: {
+        value: false,
+      },
       ttsVoice: {
         value: null,
       },
@@ -246,6 +249,13 @@
         <input type="checkbox" id="node-input-volumeFlag" style="display: inline-block; width: auto; vertical-align: top;">
         <input type="range" id="node-input-volume" name="volume" min="0" max="100" step="1" style="display: inline-block; width: 150px; margin-left: 10px; vertical-align: middle;">
         <div id="range-label" class='online'><span id="volume-level" class="online"></span><span class="online">%</span></div>
+    </div>
+    <div class="form-row command_options command_options-tts">
+        <label for="node-input-whisper" class="label label-long">
+            <i class="fa fa-deaf"></i>&nbsp;<span data-i18n="label.whisper"></span>
+            <div class="red-ui-debug-msg-type-string" style="font-size: 10px;">msg.whisper</div></label>
+        </label>
+        <input type="checkbox" id="node-input-whisper" style="display: inline-block; width: auto; vertical-align: top;">
     </div>
     <div class="form-row command_options command_options-tts">
         <label for="node-input-stopListening" class="label label-long">
