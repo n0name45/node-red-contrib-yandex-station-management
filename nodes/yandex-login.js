@@ -97,15 +97,19 @@ module.exports = function(RED) {
                 });
                 //node.emit('refreshHttp', node.activeStationList, node.readyList)
                 deviceListProcessing(node.deviceList)
+                try {
+                    discoverDevices(node.deviceList)
+                    .then(() => {
+                        //debugMessage(`calling processing for ${node.deviceList.length} devices`);
+                        deviceListProcessing(node.deviceList)
+                       
+                    });
+                    //debugMessage(node.id);
+                    return node.deviceList;
+                } catch (error) {
+                    debugMessage(`Error while searching: ${error}`);
+                } 
 
-                discoverDevices(node.deviceList)
-                .then(() => {
-                    //debugMessage(`calling processing for ${node.deviceList.length} devices`);
-                    deviceListProcessing(node.deviceList)
-                   
-                });
-                //debugMessage(node.id);
-                return node.deviceList;
             })
             .catch(function (err) {
                 //node.emit('refreshHttp', node.readyList);
@@ -295,6 +299,7 @@ module.exports = function(RED) {
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForListening) {node.emit(`stopListening`, device)}
                 if (device.lastState.aliceState == 'LISTENING' && device.playAfterTTS) {node.emit('startPlay', device)}
                 if (device.lastState.aliceState == 'LISTENING' && device.waitForIdle) {node.emit('setVolume', device)}
+                //if (device.lastState.aliceState != 'SPEAKING' && device.ttsBuffer.length > 0) {node.emit('nextTts', device)}
                 // if (device.parameters.hasOwnProperty(sheduler)) {
                 //     let resultSheduler = checkSheduler(device, dataRecieved.sentTime)
                 //     device.canPlay = resultSheduler[0]
@@ -514,6 +519,7 @@ module.exports = function(RED) {
                     if ("session" in message.hap) {
                         switch(JSON.stringify(message.payload)){
                             case '{"TargetMediaState":1}': 
+                                return messageConstructor('command', {'payload': 'stop'})
                             case '{"Active":0}':
                                 return messageConstructor('command', {'payload': 'stop'})
                             case '{"TargetMediaState":0}':
