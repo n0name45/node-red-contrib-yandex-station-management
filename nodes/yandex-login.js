@@ -558,7 +558,11 @@ module.exports = function(RED) {
                                     if (playing) {
                                         return messageConstructor('command', { 'payload': 'stop' })
                                     } else {
-                                        return messageConstructor('command', { 'payload': 'play' })
+                                        if (id) {
+                                            return messageConstructor('command', { 'payload': 'play' })
+                                        } else if (!id && noTrackPhrase) {
+                                            return messageConstructor('voice', { 'payload': noTrackPhrase })
+                                        }
                                     }
                             }
                         }
