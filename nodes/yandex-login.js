@@ -2,6 +2,7 @@ var rp = require('request-promise');
 var mDnsSd = require('node-dns-sd');
 var WebSocket = require("ws");
 const { parse } = require('node-dns-sd/lib/dns-sd-parser');
+const _ = require('lodash/object');
 
 module.exports = function(RED) {
 
@@ -18,27 +19,27 @@ module.exports = function(RED) {
         node.readyList = [];
         node.activeStationList = [];
         //node.skipCloudDevices = false;
-        
-       
+
+
         node.on('stopListening', onStopListening);
         node.on('startPlay', onStartPlay);
         node.on('stopPlay', onStopPlay);
         node.on('setVolume', onSetVolume);
         node.on('deviceReady', onDeviceReady);
         node.setMaxListeners(0)
-        
+
         function debugMessage(text){
             if (node.debugFlag) {
                 node.log(text);
             }
         }
-        
+
         let registrationBuffer = [];
-    
+
         function deviceListProcessing(deviceList) {
             deviceList.forEach(device => {
                 if (device.address && device.port ) {
-                   
+
                      if (node.readyList.find(item => item.id == device.id)){
                         //debugMessage('skipping');
                     } else {
@@ -54,23 +55,23 @@ module.exports = function(RED) {
 
         async function getDevices(token)
         {
-            let options = 
-                { 
+            let options =
+                {
                     method: 'GET',
                     url: 'https://quasar.yandex.net/glagol/device_list',
-                    headers: 
-                    { 
+                    headers:
+                    {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Oauth ' + token 
-                    } 
+                        'Authorization': 'Oauth ' + token
+                    }
                 };
-// вариант для снижения частоты запросов на серверы ЯНдекса для обновления списка устройств. Требует тестирования. 
+// вариант для снижения частоты запросов на серверы ЯНдекса для обновления списка устройств. Требует тестирования.
 /*             if (node.skipCloudDevices) {
                 discoverDevices(node.deviceList)
                 .then(() => {
                     //debugMessage(`calling processing for ${node.deviceList.length} devices`);
                     deviceListProcessing(node.deviceList)
-                   
+
                 });
                 return node.deviceList;
             } */
@@ -91,7 +92,7 @@ module.exports = function(RED) {
                         if (result != 2 && result != undefined)  {
                             registrationBuffer.splice(registrationBuffer.indexOf(bufferStation,1));
                         }
-                        
+
                     }
                         node.activeStationList.push({ 'name': device.name,  'id': device.id, 'platform': device.platform, 'address': device.address, 'port': device.port});
                 });
@@ -102,13 +103,13 @@ module.exports = function(RED) {
                     .then(() => {
                         //debugMessage(`calling processing for ${node.deviceList.length} devices`);
                         deviceListProcessing(node.deviceList)
-                       
+
                     });
                     //debugMessage(node.id);
                     return node.deviceList;
                 } catch (error) {
                     debugMessage(`Error while searching: ${error}`);
-                } 
+                }
 
             })
             .catch(function (err) {
@@ -147,15 +148,15 @@ module.exports = function(RED) {
                                         } catch(e) {
                                             debugMessage(`Error searching hostname in mDNS answer`)
                                         }
-                                        
+
                                     }
                                 }
-                            }    
+                            }
                         })
-                        
+
                     }
                 }
-                
+
             }).catch(function (err) {
                 debugMessage(err);
             });
@@ -172,15 +173,15 @@ module.exports = function(RED) {
 
         async function getLocalToken(device) {
             let data;
-            let options = { 
+            let options = {
                 method: 'GET',
                 url: 'https://quasar.yandex.net/glagol/token',
                 qs: { device_id: device.id, platform: device.platform },
-                headers: 
-                    { 
+                headers:
+                    {
                         'Authorization': 'Oauth ' + node.token,
-                        'Content-Type': 'application/json' 
-                    } 
+                        'Content-Type': 'application/json'
+                    }
                 };
             //   debugMessage(JSON.stringify(options))
             statusUpdate({"color": "yellow", "text": "connecting..."}, device);
@@ -208,7 +209,7 @@ module.exports = function(RED) {
             connect(device)
         };
 
-        
+
         function connect(device) {
             //connect only if !device.ws
             //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
@@ -226,7 +227,7 @@ module.exports = function(RED) {
                     })
                     .catch(function (err) {
                         debugMessage('Error while getting token: ' + err);
-        
+
                     });
                 } else {
                     if (device.ws.readyState == 3) {
@@ -265,9 +266,9 @@ module.exports = function(RED) {
             }
 
         }
-        
+
         async function makeConn(device) {
-           
+
             let options = {
                 key: device.glagol.security.server_private_key,
                 cert: device.glagol.security.server_certificate,
@@ -276,7 +277,7 @@ module.exports = function(RED) {
             device.lastState = {};
             debugMessage(`Connecting to wss://${device.address}:${device.port}`);
             device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
-            device.ws.on('open', function open(data) { 
+            device.ws.on('open', function open(data) {
                 debugMessage(`Connected to ${device.address}, data: ${data}`);
                 sendMessage(device.id, 'command', {payload: 'ping'});
                 statusUpdate({"color": "green", "text": "connected"}, device);
@@ -292,7 +293,7 @@ module.exports = function(RED) {
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 let dataRecieved = JSON.parse(data);
-                device.lastState = dataRecieved.state; 
+                device.lastState = dataRecieved.state;
                 device.fullMessage = JSON.stringify(dataRecieved);
                 //debugMessage(checkSheduler(device, JSON.parse(data).sentTime));
                 node.emit(`message_${device.id}`, device.lastState);
@@ -312,7 +313,7 @@ module.exports = function(RED) {
                 if (device.lastState.playing && device.lastState.aliceState != 'LISTENING' && device.parameters.hasOwnProperty("sheduler")) {
                     let res = checkSheduler(device, dataRecieved.sentTime)
                     //debugMessage(`Result of cheking sheduler is ${res.toString}`);
-                    if (!res[0]) {    
+                    if (!res[0]) {
                         if (device.shedulerFlag || device.shedulerFlag == undefined) {
                             node.emit('stopPlay', device, res[1])
                             device.shedulerFlag  = false
@@ -324,7 +325,7 @@ module.exports = function(RED) {
                 clearTimeout(device.watchDog);
                 //debugMessage(`cleared timeout for ${device.id}`)
                 device.watchDog = setTimeout(() => {device.ws.close()}, 10000);
-            }); 
+            });
             //device.ws.on('ping', function);
             device.ws.on('close', function close(code, reason){
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
@@ -336,15 +337,15 @@ module.exports = function(RED) {
                             debugMessage(`getting new token...`);
                             connect(device);
                             break;
-                        case 1000:  
+                        case 1000:
                             debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting...` );
                             connect(device);
-                            break;   
+                            break;
                         case 1006:
                             debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
                             device.timer = setTimeout(connect, 60000, device);
                             break;
-                            
+
                         case 10000:
                             debugMessage(`Reconnect device reason 10000 ${device.id}`);
                             connect(device);
@@ -356,7 +357,7 @@ module.exports = function(RED) {
                     }
 
 
-            })            
+            })
             device.ws.on('error', function error(data){
                 //statusUpdate({"color": "red", "text": "disconnected"}, device);
                 debugMessage(`error: ${data}`);
@@ -417,7 +418,7 @@ module.exports = function(RED) {
                                     return [{
                                         "command": "rewind",
                                         "position": 0
-                                    }] 
+                                    }]
                                 }
                             } else if (message.payload == 'volumeup') {
                                 debugMessage(currentVolume);
@@ -425,7 +426,7 @@ module.exports = function(RED) {
                                     return [{
                                         "command": "setVolume",
                                         "volume": currentVolume + 0.1
-                                    }] 
+                                    }]
                                 }
                             } else if (message.payload == 'volumedown') {
                                 debugMessage(currentVolume);
@@ -433,13 +434,13 @@ module.exports = function(RED) {
                                     return [{
                                         "command": "setVolume",
                                         "volume": currentVolume - 0.1
-                                    }] 
+                                    }]
                                 }
                             } else if (message.payload == 'volume') {
                                 return [{
                                     "command": "setVolume",
                                     "volume": parseFloat(message.level)
-                                }] 
+                                }]
                             }
 
                     } else {
@@ -447,7 +448,7 @@ module.exports = function(RED) {
                         //node.error(`You can send commands in msg.payload from list as String ${commands + extraCommands}`);
                         return [{"command": "ping"}];
                     }
-                case 'voice': 
+                case 'voice':
                     debugMessage(`Message Voice command: ${message}`);
                     return [{
                         "command" : "sendText",
@@ -515,56 +516,68 @@ module.exports = function(RED) {
                     return result;
                     break;
                 case 'homekit':
-                    debugMessage('HAP: ' + JSON.stringify(message) + ' PL: ' + JSON.stringify(message.payload) ); 
+                    debugMessage('HAP: ' + JSON.stringify(message) + ' PL: ' + JSON.stringify(message.payload) );
                     if ("session" in message.hap) {
-                        switch(JSON.stringify(message.payload)){
-                            case '{"TargetMediaState":1}': 
-                                return messageConstructor('command', {'payload': 'stop'})
-                            case '{"Active":0}':
-                                return messageConstructor('command', {'payload': 'stop'})
-                            case '{"TargetMediaState":0}':
-                            case '{"Active":1}':
-                                if (!device.lastState.playerState && !device.playAfterTTS && message.noTrackPhrase) {
-                                    return messageConstructor('voice', {'payload': message.noTrackPhrase})
-                                } else if (device.lastState.playerState.title != "" && !device.playAfterTTS){
-                                    return messageConstructor('command', {'payload': 'play'})
-                                } else if (message.noTrackPhrase && !device.playAfterTTS) {
-                                    return messageConstructor('voice', {'payload': message.noTrackPhrase})
-                                } else {
-                                    return messageConstructor('command', {'payload': 'ping'})
-                                }
-                            case '{"RemoteKey":7}':
-                                return messageConstructor('command', {'payload': 'forward'}, device)
-                            case '{"RemoteKey":6}':
-                                return messageConstructor('command', {'payload': 'backward'}, device)
-                            case '{"RemoteKey":4}':
-                                return messageConstructor('command', {'payload': 'next'})
-                            case '{"RemoteKey":5}':
-                                return messageConstructor('command', {'payload': 'prev'})
-                            case '{"RemoteKey":11}':
-                                if (typeof device.lastState.playing !== "undefined") {
-                                    if (device.lastState.playing){
-                                        return messageConstructor('command', {'payload': 'stop'})
-                                    } else {
-                                        return messageConstructor('command', {'payload': 'play'})
-                                    }
-                                }
-                            case '{"VolumeSelector":1}':
-                                return messageConstructor('command', {'payload': 'volumedown'}, device)
-                            case '{"VolumeSelector":0}':
-                                return messageConstructor('command', {'payload': 'volumeup'}, device)
-                            default:
-                                debugMessage('unknown command')
-                                return messageConstructor('command', {'payload': 'ping'})
+                        let playing = _.get(device, 'lastState.playing', false);
+                        let id = _.get(device, 'lastState.playerState.id', null);
+                        let noTrackPhrase = message.noTrackPhrase;
+
+                        // speaker
+                        if ("TargetMediaState" in message.payload) {
+                            let TargetMediaState = message.payload.TargetMediaState;
+                            if (id) {
+                                return messageConstructor('command', { 'payload': (TargetMediaState ? 'stop' : 'play') })
+                            } else if (!id && !TargetMediaState && noTrackPhrase) {
+                                return messageConstructor('voice', { 'payload': noTrackPhrase })
+                            }
                         }
-                        
+
+                        // tv
+                        if ("Active" in message.payload) {
+                            let Active = message.payload.Active;
+                            if (id) {
+                                return messageConstructor('command', { 'payload': (Active ? 'play' : 'stop') })
+                            } else if (!id && Active && noTrackPhrase) {
+                                return messageConstructor('voice', { 'payload': noTrackPhrase })
+                            }
+                        }
+
+                        // tv + RemoteKey
+                        if ("RemoteKey" in message.payload) {
+                            let RemoteKey = message.payload.RemoteKey;
+                            switch (RemoteKey) {
+                                case '7':
+                                    return messageConstructor('command', { 'payload': 'forward' }, device)
+                                case '6':
+                                    return messageConstructor('command', { 'payload': 'backward' }, device)
+                                case '4':
+                                    return messageConstructor('command', { 'payload': 'next' })
+                                case '5':
+                                    return messageConstructor('command', { 'payload': 'prev' })
+                                case '11':
+                                    if (playing) {
+                                        return messageConstructor('command', { 'payload': 'stop' })
+                                    } else {
+                                        return messageConstructor('command', { 'payload': 'play' })
+                                    }
+                            }
+                        }
+
+                        // tv + VolumeSelector
+                        if ("VolumeSelector" in message.payload) {
+                            let VolumeSelector = message.payload.VolumeSelector;
+                            return messageConstructor('command', { 'payload': (VolumeSelector ? 'volumedown' : 'volumeup') }, device)
+                        }
+
+                        debugMessage('unknown command')
+                        return messageConstructor('command', { 'payload': 'ping' })
                     } else {
-                        return messageConstructor('command', {'payload': 'ping'})
+                        return messageConstructor('command', { 'payload': 'ping' })
                     }
-                case 'raw': 
+                case 'raw':
                     if (Array.isArray(message.payload)) { return message.payload }
                     return [message.payload];
-                case 'stopListening': 
+                case 'stopListening':
                     return [{
                         "command": "serverAction",
                         "serverActionEventPayload": {
@@ -576,7 +589,7 @@ module.exports = function(RED) {
 
         }
         function sendMessage(deviceId, messageType, message) {
-            
+
             try {
                 let device = searchDeviceByID(deviceId);
                 //debugMessage(`deviceId: ${searchDeviceByID(deviceId)}`);
@@ -617,19 +630,19 @@ module.exports = function(RED) {
                 //debugMessage(`timeCur: ${timeCurrent} timeMin: ${timeMin} timeMax: ${timeMax}`);
                 return [false, daySheduler.phrase];
             }
-            
+
 
         }
-        
+
         function searchDeviceByID(id) {
             if (node.deviceList) {
                 return node.deviceList.find(device => device.id == id)
-            }   
+            }
         }
         function onPing(device) {
             if (device) {sendMessage(device.id, 'command', {payload: 'ping'});}
         }
-        
+
         function onPing(device) {
             sendMessage(device.id, 'command', {payload: 'ping'});
         }
@@ -638,19 +651,19 @@ module.exports = function(RED) {
             if (device) {
                 if (device.ws) {
                     switch(device.ws.readyState){
-                        case 0: 
+                        case 0:
                             return {"color": "yellow", "text": "connecting..."}
-                        case 1: 
+                        case 1:
                             return {"color": "green", "text": "connected"}
-                        case 2: 
+                        case 2:
                             return {"color": "red", "text": "disconnecting"}
-                        case 3: 
+                        case 3:
                             return {"color": "red", "text": "disconnected"}
                         default:
                             return {"color": "red", "text": "disconnected"}
                     }
-                     
-                } 
+
+                }
             } else {
                 return {"color": "red", "text": "disconnected"}
             }
@@ -658,7 +671,7 @@ module.exports = function(RED) {
         }
 
 
-        
+
         function registerDevice(deviceId, nodeId, parameters) {
             let device = searchDeviceByID(deviceId);
             debugMessage(`Recieved parameters ${JSON.stringify(parameters)} for station id ${deviceId}`);
@@ -670,7 +683,7 @@ module.exports = function(RED) {
                     debugMessage(`Device ${device.id} already registered with manager id ${device.manager}. Updating parameters and restart...`);
                     reconnect(device);
                     return 1;
-                                  
+
                 }
                 //новый и первый запрос на регистрацию для устройства
                 if (typeof(device.manager) == 'undefined') {
@@ -699,7 +712,7 @@ module.exports = function(RED) {
                         registrationBuffer.splice(registrationBuffer.indexOf(currentBuffer), 1)
                         debugMessage(`Element from registration buffer was deleted. Current buffer size is ${registrationBuffer.length}`)
                     }
-                    reconnect(device);    
+                    reconnect(device);
                     return 0;
                 }
                 //новый запрос на регистрацию при наличии уже зарегистрированной ноды
@@ -717,9 +730,9 @@ module.exports = function(RED) {
                     registrationBuffer.push({"id": deviceId, "manager": nodeId, "parameters": parameters});
                     debugMessage(`New element in registration buffer. Current buffer size is ${registrationBuffer.length}`)
                 }
-                
+
             }
-           
+
 
         }
         function unregisterDevice(deviceId, nodeId){
@@ -730,7 +743,7 @@ module.exports = function(RED) {
                     device.parameters = {};
                     debugMessage(`For device ${deviceId} was succesfully unregistred managment node whith id ${device.manager}`);
                     debugMessage(`device is: ${device}`);
-                    return 0;              
+                    return 0;
                 } else {
                     return 2;
                 }
@@ -751,7 +764,7 @@ module.exports = function(RED) {
             if (device.savedVolumeLevel) { sendMessage(device.id, 'raw',{payload: {
                     "command": "setVolume",
                     "volume": parseFloat(device.savedVolumeLevel)
-                    } 
+                    }
                 });
             }
             device.waitForIdle = false;
@@ -760,13 +773,13 @@ module.exports = function(RED) {
         function onStopPlay(device, phrase) {
             sendMessage(device.id, 'command', {payload: 'stop'});
             if (phrase.length > 0 && device.lastState.aliceState != 'SPEAKING') {sendMessage(device.id, 'tts', {payload: phrase, stopListening: true});}
-        } 
+        }
         function onClose() {
             clearInterval(node.interval);
             node.deviceList = [];
             node.removeListener('deviceReady', onDeviceReady)
         }
-        
+
         node.on('refreshHttp', function(activeList, readyList) {
             RED.httpAdmin.get("/yandexdevices_"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
                 res.json({"devices": readyList});
@@ -775,8 +788,8 @@ module.exports = function(RED) {
                 res.json({"devices": activeList});
             });
         });
-        
-        node.on('refreshHttpDNS', function(dnsList) { 
+
+        node.on('refreshHttpDNS', function(dnsList) {
             RED.httpAdmin.get("/mdns/"+node.id, RED.auth.needsPermission('yandex-login.read'), function(req,res) {
                 res.json({"SearchResult": dnsList});
             });
@@ -800,7 +813,7 @@ module.exports = function(RED) {
                 res.json({"error": 'no device found'});
             }
         });
-        
+
         // main init
         if (typeof(node.token) !== 'undefined') {
             debugMessage(`Starting server with id ${node.id}`)
