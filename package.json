@@ -29,7 +29,6 @@
         "request-promise": "^4.2.5",
         "request-promise-native": "^1.0.8",
         "node-dns-sd": "^0.4.2",
-        "ws": "^7.4.0",
-        "lodash": "^4.17.21"
+        "ws": "^7.4.0"
     }
 }

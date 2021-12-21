@@ -2,7 +2,6 @@ var rp = require('request-promise');
 var mDnsSd = require('node-dns-sd');
 var WebSocket = require("ws");
 const { parse } = require('node-dns-sd/lib/dns-sd-parser');
-const _ = require('lodash/object');
 
 module.exports = function(RED) {
 
@@ -518,9 +517,21 @@ module.exports = function(RED) {
                 case 'homekit':
                     debugMessage('HAP: ' + JSON.stringify(message) + ' PL: ' + JSON.stringify(message.payload) );
                     if ("session" in message.hap) {
-                        let playing = _.get(device, 'lastState.playing', false);
-                        let id = _.get(device, 'lastState.playerState.id', null);
+                        let playing = false;
+                        let id      = null;
                         let noTrackPhrase = message.noTrackPhrase;
+
+                        if (typeof (device.lastState) !== 'undefined') {
+                            let lastState = device.lastState;
+                            if (typeof (lastState.playing) !== 'undefined') {
+                                playing = lastState.playing;
+                            }
+                            if (typeof (lastState.playerState) !== 'undefined') {
+                                if (typeof (lastState.playerState.id) !== 'undefined') {
+                                    id = lastState.playerState.id;
+                                }
+                            }
+                        }
 
                         // speaker
                         if ("TargetMediaState" in message.payload) {

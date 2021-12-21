@@ -1,5 +1,4 @@
 module.exports = function(RED) {
-    const _ = require('lodash/object');
     const stationHelper = require('../lib/stationHelper.js');
 
     function AliceLocalGetNode(config) {
@@ -21,7 +20,11 @@ module.exports = function(RED) {
         }
 
         function _preparePayload(message, inputMsg) {
-            return _.merge(inputMsg, stationHelper.preparePayload(node, message));
+            let prepare = stationHelper.preparePayload(node, message);
+            if (typeof(prepare.payload) !== 'undefined') {
+                inputMsg.payload = prepare.payload;
+            }
+            return inputMsg;
         }
 
         node.onStatus = function(data) {
