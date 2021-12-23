@@ -1,4 +1,6 @@
 module.exports = function(RED) {
+    const stationHelper = require('../lib/stationHelper.js');
+
     function AliceLocalInNode(config) {
         RED.nodes.createNode(this,config);
         let node = this;
@@ -20,42 +22,6 @@ module.exports = function(RED) {
             }
         }
 
-
-        function preparePayload(message){
-            let payload = {};
-            if (node.output == 'status') {
-                   payload = {'payload': message}
-            } else if (node.output == 'homekit') {
-                try {
-                    if (node.homekitFormat == 'speaker') {
-                        let ConfiguredName = `${(message.playerState.subtitle) ? message.playerState.subtitle : 'No Artist'} - ${(message.playerState.title) ? message.playerState.title : 'No Track Name'}`;
-                        let title = `${message.playerState.title}`;
-                        if (ConfiguredName.length > 64 && title.length > 0 && title.length <= 64) {
-                            ConfiguredName = title;
-                        } else {
-                            ConfiguredName = title.substr(0, 61) + `...`;
-                        }
-                        (message.playerState)? payload = {'payload': {
-                            "CurrentMediaState": (message.playing) ? 0 : 1,
-                            "ConfiguredName": ConfiguredName
-                        } }:payload = {'payload': {
-                            "CurrentMediaState": (message.playing) ? 0 : 1,
-                            "ConfiguredName": `No Artists - No Track Name`
-                        } }
-                    }else if (node.homekitFormat == 'tv') {
-                        payload = {'payload': {
-                            "Active": (message.playing) ? 1 : 0
-                        }
-                        }
-                    }
-                } catch(e) {
-                    debugMessage(`Error while preparing payload: `+ e)
-                }
-
-            }
-        return payload;
-
-        }
         function sendMessage(message){
         //debugMessage(JSON.stringify(message));
             if (node.uniqueFlag && node.output == 'homekit') {
@@ -71,7 +37,7 @@ module.exports = function(RED) {
         }
         node.onMessage = function(data){
             //debugMessage(JSON.stringify(data));
-            sendMessage(preparePayload(data));
+            sendMessage(stationHelper.preparePayload(node, data));
         }
         node.onStatus = function(data) {
             if (data) {
