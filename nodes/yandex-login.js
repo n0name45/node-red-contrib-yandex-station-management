@@ -29,7 +29,12 @@ module.exports = function(RED) {
 
         function debugMessage(text){
             if (node.debugFlag) {
-                node.log(text);
+                try {
+                    node.log(text);
+                } catch (error) {
+                    node.log(error)
+                }
+
             }
         }
 
@@ -126,7 +131,6 @@ module.exports = function(RED) {
             await mDnsSd.discover({
                 name: '_yandexio._tcp.local'
             }).then((result) => {
-                debugMessage(`MDNS. Found ${result.length} devices`);
                 node.emit('refreshHttpDNS', result);
                 if (result.length != 0){
                     for (const device of deviceList) {
@@ -188,7 +192,8 @@ module.exports = function(RED) {
             .then(function(response)
             {
                 data = JSON.parse(response);
-                device.token = data.token
+                device.token = data.token;
+                debugMessage(`${device.id}: Recieved conversation new token`)
             })
             .catch(function (err) {
                 removeDevice(node.readyList, device);
@@ -213,7 +218,7 @@ module.exports = function(RED) {
             //connect only if !device.ws
             //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
             if ( (device.connection == true || typeof(device.connection) == "undefined") && node.listenerCount(`statusUpdate_${device.id}`) > 0 ) {
-                debugMessage(`Connecting to device ${device.id}. ws is ${JSON.stringify(device.ws)}. Listeners: ` + node.listenerCount(`statusUpdate_${device.id}`));
+                debugMessage(`Connecting to device ${device.id}. ws is ${device.ws}. Listeners: ` + node.listenerCount(`statusUpdate_${device.id}`));
                 if (!device.ws) {
                     debugMessage('recieving conversation token...');
                     getLocalToken(device)
@@ -258,8 +263,8 @@ module.exports = function(RED) {
                     //}
                 }
             } else {
-                debugMessage(`${device.id} connection is disabled by settings in manager node ${device.manager} or you have not use any node for this station`)
-                statusUpdate({"color": "red", "text": "disconnected"}, device);
+                //debugMessage(`${device.id} connection is disabled by settings in manager node ${device.manager} or you have not use any node for this station`)
+                //statusUpdate({"color": "red", "text": "disconnected"}, device);
                 device.timer = setTimeout(connect, 60000, device);
 
             }
@@ -276,6 +281,8 @@ module.exports = function(RED) {
             device.lastState = {};
             debugMessage(`Connecting to wss://${device.address}:${device.port}`);
             device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
+            debugMessage(`${device.id}: Fire connection watchdog for 60 seconds`);
+            device.watchDogConn = setTimeout(() => {reconnect(device)}, 60000);
             device.ws.on('open', function open(data) {
                 debugMessage(`Connected to ${device.address}, data: ${data}`);
                 sendMessage(device.id, 'command', {payload: 'ping'});
@@ -286,6 +293,8 @@ module.exports = function(RED) {
                 device.waitForIdle = false;
                 device.watchDog = setTimeout(() => device.ws.close(), 10000);
                 device.pingInterval = setInterval(onPing,300,device);
+                debugMessage(`${device.id}: Kill connection watchdog`);
+                clearTimeout(device.watchDogConn);
                 clearTimeout(device.timer);
                 debugMessage(`readyState: ${device.ws.readyState}`)
             });
