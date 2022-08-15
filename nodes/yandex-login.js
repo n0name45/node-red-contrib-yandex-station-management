@@ -369,11 +369,9 @@ module.exports = function(RED) {
             device.ws.on('error', function error(data){
                 //statusUpdate({"color": "red", "text": "disconnected"}, device);
                 debugMessage(`error: ${data}`);
-                device.ws.terminate();
-                // if (device.localConnectionFlag) {
-                //     debugMessage(`Reconnecting in 60 seconds...` );
-                //     setTimeout(connect, 60000, device);
-                // }
+                if (typeof(device) !== 'undefined' && typeof(device.ws) !== 'undefined' ) {
+                    device.ws.terminate();
+                }
             });
         };
 
