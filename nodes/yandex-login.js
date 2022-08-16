@@ -296,7 +296,7 @@ module.exports = function(RED) {
                 debugMessage(`${device.id}: Kill connection watchdog`);
                 clearTimeout(device.watchDogConn);
                 clearTimeout(device.timer);
-                debugMessage(`readyState: ${device.ws.readyState}`)
+                //debugMessage(`readyState: ${device.ws.readyState}`)
             });
             device.ws.on('message', function incoming(data) {
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
