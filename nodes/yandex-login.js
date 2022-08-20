@@ -291,7 +291,9 @@ module.exports = function(RED) {
                 device.waitForListening = false;
                 device.playAfterTTS = false;
                 device.waitForIdle = false;
-                device.watchDog = setTimeout(() => device.ws.close(), 10000);
+                device.watchDog = setTimeout(() => {
+                    if (typeof(device) != 'undefined' && typeof(device.ws) != 'undefined') {device.ws.close()}
+                }, 10000);
                 device.pingInterval = setInterval(onPing,300,device);
                 debugMessage(`${device.id}: Kill connection watchdog`);
                 clearTimeout(device.watchDogConn);
