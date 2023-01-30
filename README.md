@@ -5,8 +5,8 @@
 - Яндекс Станция мини 2 с экраном(протестировано)
 - Яндекс Станция лайт(протестировано)
 - Яндекс Станци Макс(протестировано)
-- Яндекс Модуль(не протестировано)
-- Яндекс Модуль - 2 (в процессе тестирования)
+- Яндекс Модуль( протестировано)
+- Яндекс Модуль - 2 (протестировано)
 - JBL Link Music(не протестировано)
 - JBL Link Portable(протестировано)
 
@@ -236,7 +236,36 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 	"volume" : 0.2
 }
 ```
-10. Отправить "Текст" для TTS.
+10. Включить радио
+```json
+{
+    "command": "playRadio",
+    "id": "detskoe"
+}
+```
+11. Режим повтора. "One"/"All"/"None" 
+```json
+{
+    "command": "repeat",
+    "mode": "One"
+}
+```
+12. Режим вразброс. Срабатывает, когда есть очередь треков(включен плейоист, альбом, артист) true/false
+```json
+{
+    "command": "shuffle",
+    "enable": true
+}
+```
+13. Принудительно включить режим индикации Алисы - занято, слушаю, простой "LISTENING"/"BUSY"/"IDLE" 
+```json
+{
+    "command": "showAliceVisualState",
+    "aliceStateName": "LISTENING",
+    "recognizedPhrase": ""
+}
+```
+14. Отправить "Текст" для TTS.
 Больше не работает!
 ```json
 {
@@ -244,14 +273,14 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 	"text" : "Повторяй за мной 'Текст'"
 }
 ```
-11. Отправить голосовую команду.
+15. Отправить голосовую команду.
 ```json
 {
 	"command" : "sendText",
 	"text" : "Включи музыку"
 }
 ```
-12.  Прервать "слушание" после TTS и не только:
+16.  Прервать "слушание" после TTS и не только:
 ```json
 {
     "command": "serverAction",
@@ -262,7 +291,7 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 }
 ```
 
-13.  Отправить "Текст" для TTS со спецэффектами (**raw режим**):
+17.  Отправить "Текст" для TTS со спецэффектами (**raw режим**):
 ```json
 {
     "command": "serverAction",
@@ -314,7 +343,53 @@ Phrase to say - фраза, которую скажет Алиса вместо 
 ```json
 "value": "<speaker voice='kostya' audio='alice-sounds-game-win-1.opus' effect='megaphone'>добро пожаловать"
 ```
-
+18. Приветствие как в автомобиле. Кратко скажет погоду и пробки
+```json
+{
+    "command": "serverAction",
+    "serverActionEventPayload": {
+        "type": "server_action",
+        "name": "update_form",
+        "payload": {
+            "form_update": {
+                "name": "personal_assistant.automotive.greeting"
+            },
+            "resubmit": true
+        }
+    }
+}
+```
+19. Включить и выключить блютуз
+```json
+{
+    "command": "serverAction",
+    "serverActionEventPayload": {
+        "type": "server_action",
+        "name": "update_form",
+        "payload": {
+            "form_update": {
+                "name": "personal_assistant.scenarios.bluetooth_on"
+            },
+            "resubmit": true
+        }
+    }
+}
+```
+```json
+{
+    "command": "serverAction",
+    "serverActionEventPayload": {
+        "type": "server_action",
+        "name": "update_form",
+        "payload": {
+            "form_update": {
+                "name": "personal_assistant.scenarios.bluetooth_off"
+            },
+            "resubmit": true
+        }
+    }
+}
+```
 
 #### Stop listening.
 
