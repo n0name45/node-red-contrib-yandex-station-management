@@ -94,7 +94,8 @@ module.exports = function(RED) {
                     if (bufferStation) {
                         let result = registerDevice(bufferStation.id, bufferStation.manager, bufferStation.parameters)
                         if (result != 2 && result != undefined)  {
-                            registrationBuffer.splice(registrationBuffer.indexOf(bufferStation,1));
+                            //https://github.com/n0name45/node-red-contrib-yandex-station-management/issues/20#issuecomment-1373709408
+                            //registrationBuffer.splice(registrationBuffer.indexOf(bufferStation,1));
                         }
 
                     }
