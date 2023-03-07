@@ -295,7 +295,7 @@ module.exports = function(RED) {
                 device.watchDog = setTimeout(() => {
                     if (typeof(device) != 'undefined' && typeof(device.ws) != 'undefined') {device.ws.close()}
                 }, 10000);
-                device.pingInterval = setInterval(onPing,300,device);
+                device.pingInterval = setInterval(onPing,1500,device);
                 debugMessage(`${device.id}: Kill connection watchdog`);
                 clearTimeout(device.watchDogConn);
                 clearTimeout(device.timer);
@@ -395,7 +395,7 @@ module.exports = function(RED) {
         };
 
         function messageConstructor(messageType, message, device){
-            let commands = ['play', 'stop', 'next', 'prev', 'ping'];
+            let commands = ['play', 'stop', 'next', 'prev', 'ping', 'softwareVersion'];
             let extraCommands = ['forward', 'backward', 'volumeup', 'volumedown', 'volume'];
             switch(messageType){
                 case 'command':
@@ -455,7 +455,7 @@ module.exports = function(RED) {
                     } else {
                         debugMessage(`Bad command ${message.payload}`)
                         //node.error(`You can send commands in msg.payload from list as String ${commands + extraCommands}`);
-                        return [{"command": "ping"}];
+                        return [{"command": "softwareVersion"}];
                     }
                 case 'voice':
                     debugMessage(`Message Voice command: ${message}`);
@@ -595,9 +595,9 @@ module.exports = function(RED) {
                         }
 
                         debugMessage('unknown command')
-                        return messageConstructor('command', { 'payload': 'ping' })
+                        return messageConstructor('command', { 'payload': 'softwareVersion' })
                     } else {
-                        return messageConstructor('command', { 'payload': 'ping' })
+                        return messageConstructor('command', { 'payload': 'softwareVersion' })
                     }
                 case 'raw':
                     if (Array.isArray(message.payload)) { return message.payload }
@@ -665,11 +665,11 @@ module.exports = function(RED) {
             }
         }
         function onPing(device) {
-            if (device) {sendMessage(device.id, 'command', {payload: 'ping'});}
+            if (device) {sendMessage(device.id, 'command', {payload: 'softwareVersion'});}
         }
 
         function onPing(device) {
-            sendMessage(device.id, 'command', {payload: 'ping'});
+            sendMessage(device.id, 'command', {payload: 'softwareVersion'});
         }
         function getStatus(id) {
             let device = searchDeviceByID(id);
