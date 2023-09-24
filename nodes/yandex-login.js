@@ -66,7 +66,7 @@ module.exports = function(RED) {
                     headers:
                     {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Oauth ' + token
+                        'Authorization': 'OAuth ' + token
                     }
                 };
 // вариант для снижения частоты запросов на серверы ЯНдекса для обновления списка устройств. Требует тестирования.
@@ -183,7 +183,7 @@ module.exports = function(RED) {
                 qs: { device_id: device.id, platform: device.platform },
                 headers:
                     {
-                        'Authorization': 'Oauth ' + node.token,
+                        'Authorization': 'OAuth ' + node.token,
                         'Content-Type': 'application/json'
                     }
                 };
