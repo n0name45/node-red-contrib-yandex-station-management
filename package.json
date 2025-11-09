@@ -28,7 +28,7 @@
         "request": "^2.88.2",
         "request-promise": "^4.2.5",
         "request-promise-native": "^1.0.8",
-        "node-dns-sd": "^0.4.2",
+        "node-dns-sd": "^1.0.1",
         "ws": "^7.4.0"
     }
 }
