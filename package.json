@@ -4,7 +4,7 @@
   "description": "Local management of YandexStation using API on websockets",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"no test specified\""
+    "test": "node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
