@@ -21,6 +21,14 @@
       },
       payload: {
         value: 'payload',
+        validate: function(value, opt) {
+          var command = $('#node-input-input').val() || this.input;
+          // Only TTS uses this field; other commands always read msg.payload.
+          if (command !== 'tts') {
+            return true;
+          }
+          return RED.validators.typedInput('payloadType').call(this, value, opt);
+        },
       },
       payloadType: {
         value: 'msg',
