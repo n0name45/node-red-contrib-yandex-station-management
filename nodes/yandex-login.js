@@ -3,6 +3,20 @@ var mDnsSd = require('node-dns-sd');
 var WebSocket = require("ws");
 const { parse } = require('node-dns-sd/lib/dns-sd-parser');
 
+// node-dns-sd owns one UDP socket. Share a pending search across all login
+// nodes, including overlapping polls and retries, until it has fully settled.
+let discoveryPromise = null;
+function discoverStations() {
+    if (!discoveryPromise) {
+        discoveryPromise = Promise.resolve().then(() => mDnsSd.discover({
+            name: '_yandexio._tcp.local'
+        })).finally(() => {
+            discoveryPromise = null;
+        });
+    }
+    return discoveryPromise;
+}
+
 module.exports = function(RED) {
 
     function YandexLoginNode(config) {
@@ -129,9 +143,7 @@ module.exports = function(RED) {
             });
         }
         async function discoverDevices(deviceList) {
-            await mDnsSd.discover({
-                name: '_yandexio._tcp.local'
-            }).then((result) => {
+            await discoverStations().then((result) => {
                 node.emit('refreshHttpDNS', result);
                 if (result.length != 0){
                     for (const device of deviceList) {
