@@ -27,6 +27,7 @@ module.exports = function(RED) {
         node.sendMessage = sendMessage;
         node.registerDevice = registerDevice;
         node.unregisterDevice = unregisterDevice;
+        node.reinitDevice = reinitDevice;
         node.debugFlag = config.debugFlag;
         node.deviceList = [];
         node.readyList = [];
@@ -787,6 +788,44 @@ module.exports = function(RED) {
             }
         }
 
+        //Полный сброс соединения с устройством: рвём websocket, чистим накопленное
+        //состояние (lastState/fullMessage/флаги), берём НОВЫЙ conversation token
+        //и подключаемся заново. Вызывается командой "reinit" ноды OUT.
+        function reinitDevice(deviceId, nodeId) {
+            let device = searchDeviceByID(deviceId);
+            if (!device) { return 'no device'; }
+            debugMessage(`Reinit request for ${device.id} from node ${nodeId}`);
+            //останавливаем все таймеры и пинг
+            if (device.timer) { clearTimeout(device.timer); device.timer = undefined; }
+            if (device.watchDog) { clearTimeout(device.watchDog); device.watchDog = undefined; }
+            if (device.watchDogConn) { clearTimeout(device.watchDogConn); device.watchDogConn = undefined; }
+            if (device.pingInterval) { clearInterval(device.pingInterval); device.pingInterval = undefined; }
+            //сбрасываем накопленное состояние ("бороду")
+            device.lastState = {};
+            device.fullMessage = undefined;
+            device.waitForListening = false;
+            device.playAfterTTS = false;
+            device.waitForIdle = false;
+            device.shedulerFlag = true;
+            //отключаем старый websocket: removeAllListeners, чтобы close-обработчик
+            //не запустил свою автоперезаподключку в параллель с нашим
+            if (device.ws) {
+                try {
+                    device.ws.removeAllListeners();
+                    device.ws.terminate();
+                } catch (e) { debugMessage(`terminate error: ${e}`) }
+                device.ws = undefined;
+            }
+            //новый conversation token и новое соединение
+            if (device.address && device.port) {
+                getLocalToken(device)
+                .then(() => { makeConn(device) })
+                .catch(function (err) { debugMessage(`Error on reinit: ${err}`) });
+                return 'reinit';
+            } else {
+                return 'no address/port';
+            }
+        }
         function onStopListening(device) {
             sendMessage(device.id, 'stopListening');
             device.waitForListening = false;

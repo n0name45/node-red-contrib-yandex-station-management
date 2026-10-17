@@ -24,7 +24,8 @@
         "voice": "Voice",
         "raw": "Raw",
         "stop_listening": "Stop listening",
-        "homekit": "Homekit"
+        "homekit": "Homekit",
+        "reinit": "Reinit connection"
     },
     "voice": {
         "default": "Default",
