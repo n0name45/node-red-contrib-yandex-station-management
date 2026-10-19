@@ -43,7 +43,7 @@
                 $.getJSON('yandexdevices_'+config.id,function(data) {
                         data.devices.forEach(device => {
                             selector.append(`<option value="${device.id}"> 
-                                       ${device.name}(${device.id})
+                                       ${device.name} (${device.id})
                                   </option>`)
                         $(`#node-input-station_id :contains(${currentId})`).attr("selected", "selected"); 
                     });
@@ -64,20 +64,26 @@
     <style>
         .label-long {min-width: 150px;width: 20%;}
         .online {display: inline-block; width: auto; vertical-align: middle;}
+                /* msg.*-под-подпись — под основной надписью, не растягивает label (основная
+           надпись центрируется по строке штатно) */
+        .form-horizontal label{position: relative;}
+        .form-horizontal label > div.red-ui-debug-msg-type-string{
+            position: absolute; left: 0; top: 100%; margin: 0;
+        }
     </style> 
 
 
     <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-bookmark"></i>Name</label>
+        <label for="node-input-name"><i class="fa fa-bookmark"></i>&nbsp;<span>Name</span></label>
         <input type="text" id="node-input-name" placeholder="">
     </div>
     <div class="form-row">
-        <label for="node-input-token"><i class="fa fa-globe"></i>Login</label>
+        <label for="node-input-token"><i class="fa fa-globe"></i>&nbsp;<span>Login</span></label>
         <input type="text" id="node-input-token" placeholder="Token">
     </div>
     <div class="form-row">
-        <label for="node-input-station_id"><i class="fa fa-database">Station</i></label>
-        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+        <label for="node-input-station_id" style="padding-top: 7px;"><i class="fa fa-database"></i>&nbsp;<span>Station</span></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 34px;vertical-align: top;">
             <div style="position: absolute;left: 0px; right: 40px;">
                 <select id="node-input-station_id" data-single="true" style="width: 100%"></select>
             </div>        
@@ -87,8 +93,8 @@
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-output"><i class="fa fa-arrow-circle-o-left">Output</i></label>
-        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+        <label for="node-input-output" style="padding-top: 7px;"><i class="fa fa-arrow-circle-o-left"></i>&nbsp;<span>Output</span></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 34px;vertical-align: top;">
             <div style="position: absolute;left: 0px; right: 0px;">
                 <select id="node-input-output" data-single="true" style="width: 100%">
                     <option value="status">Full status Message</option>
@@ -98,8 +104,8 @@
         </div>
     </div>
     <div class="form-row" id="node-homekitFormat">
-        <label for="node-input-homekitFormat"><i class="fa fa-arrow-circle-o-left">Homekit Format</i></label>
-        <div style="display: inline-block;position: relative;width: 70%;height: 20px;">
+        <label for="node-input-homekitFormat" style="padding-top: 7px;"><i class="fa fa-arrow-circle-o-left"></i>&nbsp;<span>Homekit</span></label>
+        <div style="display: inline-block;position: relative;width: 70%;height: 34px;vertical-align: top;">
             <div style="position: absolute;left: 0px; right: 0px;">
                 <select id="node-input-homekitFormat" data-single="true" style="width: 100%">
                     <option value="speaker">Smart Speaker</option>
@@ -109,12 +115,12 @@
         </div>
     </div>
     <div class="form-row" id="node-unique">
-        <label for='node-input-uniqueFlag' class="label-long"><i class='fa fa-first-order'>Unique messages</i></label>
-        <input type="checkbox" id="node-input-uniqueFlag" checked="checked" style="display: inline-block; width: auto; vertical-align: top;"> 
+        <label for='node-input-uniqueFlag' class="label-long"><i class='fa fa-first-order'></i>&nbsp;<span>Unique messages</span></label>
+        <input type="checkbox" id="node-input-uniqueFlag" checked="checked" style="display: inline-block; width: auto; vertical-align: middle;"> 
     </div>
     <div class="form-row">
-        <label for='node-input-debugFlag' style="min-width: 110px; width: 20%;"><i class='fa fa-share-square'>Debug</i></label>
-        <input type="checkbox" id="node-input-debugFlag" checked="checked" style="display: inline-block; width: auto; vertical-align: top;"> 
+        <label for='node-input-debugFlag' class="label-long"><i class='fa fa-share-square'></i>&nbsp;<span>Debug</span></label>
+        <input type="checkbox" id="node-input-debugFlag" checked="checked" style="display: inline-block; width: auto; vertical-align: middle;"> 
     </div>
 </script>
 
