@@ -24,11 +24,18 @@ function fixture() {
     const logs = [];
     const module = { exports: {} };
     const source = process.env.YANDEX_SOURCE || path.resolve(__dirname, '../nodes/yandex-login.js');
+    const wsInstances = [];
+    const emitters = {};
     const mocks = {
         'request-promise': () => Promise.resolve(JSON.stringify({ devices: [] })),
         'node-dns-sd': { discover: options => { calls.push(options); return discover(); } },
         'node-dns-sd/lib/dns-sd-parser': {},
-        ws: class WebSocket {}
+        ws: class WebSocket {
+            constructor() { this.readyState = 1; wsInstances.push(this); }
+            on() {}
+            terminate() { this.readyState = 3; this.terminated = true; }
+            removeAllListeners() {}
+        }
     };
     vm.runInNewContext(fs.readFileSync(source, 'utf8'), {
         module,
@@ -42,7 +49,7 @@ function fixture() {
             return poll;
         },
         clearInterval: () => {},
-        setTimeout: () => { throw new Error('Unexpected device connection'); },
+        setTimeout: () => 0,
         clearTimeout: () => {},
         console
     }, { filename: source });
@@ -54,6 +61,7 @@ function fixture() {
                 for (const method of ['on', 'emit', 'removeListener', 'setMaxListeners']) {
                     node[method] = events[method].bind(events);
                 }
+                emitters[config.id] = events;
                 node.id = config.id;
                 node.credentials = { token: 'test-only-token' };
                 node.log = message => logs.push(message);
@@ -64,9 +72,10 @@ function fixture() {
         auth: { needsPermission: () => () => {} }
     });
     return {
-        calls, polls, logs,
+        calls, polls, logs, wsInstances,
         create: id => new constructor({ id, debugFlag: true }),
-        discover: fn => { discover = fn; }
+        discover: fn => { discover = fn; },
+        close: id => { if (emitters[id]) { emitters[id].emit('close'); } }
     };
 }
 
@@ -149,7 +158,7 @@ test('a login node created during discovery joins the existing search', async ()
     const f = fixture();
     const pending = deferred();
     f.discover(() => pending.promise);
-    f.create('first');
+    const node = f.create('first');
     await tick();
     const received = [];
     f.create('second').on('refreshHttpDNS', value => received.push(value));
@@ -159,4 +168,41 @@ test('a login node created during discovery joins the existing search', async ()
     await tick();
     assert.equal(count, 1);
     assert.equal(received.length, 1);
+});
+
+test('flow stop severs live station websockets (no orphaned sockets on deploy)', async () => {
+    const f = fixture();
+    const node = f.create('first');
+    const fakeWs = {
+        readyState: 1,
+        terminate() { this.terminated = true; },
+        removeAllListeners() { this.listenersRemoved = true; }
+    };
+    node.deviceList.push({ id: 'dev1', ws: fakeWs });
+    f.close('first');
+    assert.equal(fakeWs.terminated, true);
+    assert.equal(fakeWs.listenersRemoved, true);
+    assert.equal(node.deviceList.length, 0);
+});
+
+test('reinit is single-flight and severs the old socket', async () => {
+    const f = fixture();
+    const node = f.create('first');
+    const oldWs = { readyState: 1, terminate() { this.terminated = true; }, removeAllListeners() {} };
+    node.deviceList.push({
+        id: 'dev1',
+        address: '192.0.2.231',
+        port: 1961,
+        glagol: { security: { server_private_key: 'k', server_certificate: 'c' } },
+        ws: oldWs
+    });
+    const r1 = node.reinitDevice('dev1', 'mgr1');
+    const r2 = node.reinitDevice('dev1', 'mgr1');
+    assert.equal(r1, 'reinit');
+    assert.equal(r2, 'reinit already in progress');
+    assert.equal(oldWs.terminated, true);
+    await tick();
+    assert.equal(node.deviceList[0].reinitInFlight, false);
+    assert.equal(f.wsInstances.length, 1);
+    assert.equal(node.deviceList[0].ws, f.wsInstances[0]);
 });

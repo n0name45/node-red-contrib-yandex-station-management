@@ -48,15 +48,19 @@
                         $(`#node-input-station_id :contains(${currentId})`).attr("selected", "selected"); 
                     });
                 });
-                $('#node-input-output').on('change', function(type, value) {
-                    if ($(this).val() == 'homekit') {
-                        $('#node-unique').show();
-                        $('#node-homekitFormat').show();
-                    } else {
-                        $('#node-unique').hide();
-                        $('#node-homekitFormat').hide();
-                    }
-                });
+                // Строка "Homekit" показывается только в режиме HomeKit. Применяем её
+                // сразу при открытии (значения уже восстановлены из сохранённой ноды)
+                // и на каждое изменение Output. Только обработчик change не гарантирует
+                // стабильное состояние при повторном открытии: Node-RED сам триггерит
+                // 'change' при восстановлении значений, и до него строка мигает
+                // (видна по шаблону), а затем прячется не от сохранённого значения.
+                // Чекбокс "Unique messages" всегда видим: его состояние сохраняется
+                // независимо от режима Output.
+                function applyOutputMode() {
+                    $('#node-homekitFormat').toggle($('#node-input-output').val() == 'homekit');
+                }
+                $('#node-input-output').on('change', applyOutputMode);
+                applyOutputMode();
             }  
 </script>
 
@@ -103,7 +107,7 @@
             </div>
         </div>
     </div>
-    <div class="form-row" id="node-homekitFormat">
+    <div class="form-row" id="node-homekitFormat" style="display: none;">
         <label for="node-input-homekitFormat" style="padding-top: 7px;"><i class="fa fa-arrow-circle-o-left"></i>&nbsp;<span>Homekit</span></label>
         <div style="display: inline-block;position: relative;width: 70%;height: 34px;vertical-align: top;">
             <div style="position: absolute;left: 0px; right: 0px;">

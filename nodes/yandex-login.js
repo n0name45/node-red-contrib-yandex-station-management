@@ -287,6 +287,15 @@ module.exports = function(RED) {
 
         async function makeConn(device) {
 
+            //Если осталось живое старое соединение (параллельный makeConn во время
+            //гонки: двойной reinit, reconnect поверх in-flight подключения) — рвём его,
+            //чтобы к станции было ровно одно соединение
+            if (device.ws && device.ws.readyState !== 3) {
+                try {
+                    device.ws.removeAllListeners();
+                    device.ws.terminate();
+                } catch (e) {}
+            }
             let options = {
                 key: device.glagol.security.server_private_key,
                 cert: device.glagol.security.server_certificate,
@@ -294,7 +303,7 @@ module.exports = function(RED) {
             };
             device.lastState = {};
             debugMessage(`Connecting to wss://${device.address}:${device.port}`);
-            device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
+            const ws = device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
             debugMessage(`${device.id}: Fire connection watchdog for 60 seconds`);
             device.watchDogConn = setTimeout(() => {reconnect(device)}, 60000);
             device.ws.on('open', function open(data) {
@@ -351,7 +360,9 @@ module.exports = function(RED) {
                 device.watchDog = setTimeout(() => {device.ws.close()}, 10000);
             });
             //device.ws.on('ping', function);
-            device.ws.on('close', function close(code, reason){
+            ws.on('close', function close(code, reason){
+                //устаревший сокет (уже заменён новым) — не запускаем от него автопереподключение
+                if (device.ws !== ws) { return; }
                 statusUpdate({"color": "red", "text": "disconnected"}, device);
                 //debugMessage(`readyState: ${device.ws.readyState}`)
                 device.lastState = {};
@@ -794,6 +805,12 @@ module.exports = function(RED) {
         function reinitDevice(deviceId, nodeId) {
             let device = searchDeviceByID(deviceId);
             if (!device) { return 'no device'; }
+            //одна reinit за раз: иначе два параллельных getLocalToken/makeConn
+            //создадут два соединения, а старое будет потеряно (утечёт на станции)
+            if (device.reinitInFlight) {
+                debugMessage(`Reinit for ${device.id} already in progress, skipped`);
+                return 'reinit already in progress';
+            }
             debugMessage(`Reinit request for ${device.id} from node ${nodeId}`);
             //останавливаем все таймеры и пинг
             if (device.timer) { clearTimeout(device.timer); device.timer = undefined; }
@@ -818,9 +835,11 @@ module.exports = function(RED) {
             }
             //новый conversation token и новое соединение
             if (device.address && device.port) {
+                device.reinitInFlight = true;
                 getLocalToken(device)
                 .then(() => { makeConn(device) })
-                .catch(function (err) { debugMessage(`Error on reinit: ${err}`) });
+                .catch(function (err) { debugMessage(`Error on reinit: ${err}`) })
+                .finally(() => { device.reinitInFlight = false; });
                 return 'reinit';
             } else {
                 return 'no address/port';
@@ -852,6 +871,21 @@ module.exports = function(RED) {
         }
         function onClose() {
             clearInterval(node.interval);
+            //Полностью рвём websocket'ы станций: иначе при каждом деплое
+            // (Stopping flows) старый сокет остаётся ESTABLISHED на станции навсегда
+            node.deviceList.forEach(device => {
+                if (device.timer) { clearTimeout(device.timer); device.timer = undefined; }
+                if (device.watchDog) { clearTimeout(device.watchDog); device.watchDog = undefined; }
+                if (device.watchDogConn) { clearTimeout(device.watchDogConn); device.watchDogConn = undefined; }
+                if (device.pingInterval) { clearInterval(device.pingInterval); device.pingInterval = undefined; }
+                if (device.ws) {
+                    try {
+                        device.ws.removeAllListeners();
+                        device.ws.terminate();
+                    } catch (e) {}
+                    device.ws = undefined;
+                }
+            });
             node.deviceList = [];
             node.removeListener('deviceReady', onDeviceReady)
         }
