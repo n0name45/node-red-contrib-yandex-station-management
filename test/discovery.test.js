@@ -191,7 +191,7 @@ test('reinit is single-flight and severs the old socket', async () => {
     const oldWs = { readyState: 1, terminate() { this.terminated = true; }, removeAllListeners() {} };
     node.deviceList.push({
         id: 'dev1',
-        address: '192.168.201.231',
+        address: '192.0.2.231',
         port: 1961,
         glagol: { security: { server_private_key: 'k', server_certificate: 'c' } },
         ws: oldWs
