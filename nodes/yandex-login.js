@@ -305,6 +305,7 @@ module.exports = function(RED) {
                 rejectUnauthorized: false
             };
             device.lastState = {};
+            device.heard = false;
             debugMessage(`Connecting to wss://${device.address}:${device.port}`);
             device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
             debugMessage(`${device.id}: Fire connection watchdog for 60 seconds`);
@@ -327,6 +328,8 @@ module.exports = function(RED) {
                 //debugMessage(`readyState: ${device.ws.readyState}`)
             });
             device.ws.on('message', function incoming(data) {
+                device.heard = true;
+                device.silentCloses = 0;
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 let dataRecieved = JSON.parse(data);
                 device.lastState = dataRecieved.state;
@@ -368,27 +371,34 @@ module.exports = function(RED) {
                 //debugMessage(`readyState: ${device.ws.readyState}`)
                 device.lastState = {};
                 clearTimeout(device.watchDog);
+                //соединение, на котором станция ничего не сказала, считаем неудачей: каждая
+                //следующая подряд добавляет 30 с перед новой попыткой, максимум 5 минут.
+                //Раньше на 1000/4000/10000 подключались сразу, и молчащая станция стоила
+                //нового токена каждые 10 с (столько ждёт watchDog)
+                if (!device.heard) { device.silentCloses = (device.silentCloses || 0) + 1; }
+                const backoff = 30000 * Math.min(Math.max((device.silentCloses || 0) - 1, 0), 10);
+                const slow = Math.max(60000, backoff);
                     switch(code) {
                         case 4000:  //invalid token
-                            debugMessage(`getting new token...`);
-                            connect(device);
+                            debugMessage(`getting new token in ${backoff / 1000} s...`);
+                            device.timer = setTimeout(connect, backoff, device);
                             break;
                         case 1000:
-                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting...` );
-                            connect(device);
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in ${backoff / 1000} s...` );
+                            device.timer = setTimeout(connect, backoff, device);
                             break;
                         case 1006:
-                            debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
-                            device.timer = setTimeout(connect, 60000, device);
+                            debugMessage(`Lost server, reconnect in ${slow / 1000} seconds...${code} + ${reason}` );
+                            device.timer = setTimeout(connect, slow, device);
                             break;
 
                         case 10000:
                             debugMessage(`Reconnect device reason 10000 ${device.id}`);
-                            connect(device);
+                            device.timer = setTimeout(connect, backoff, device);
                             break;
                         default:
-                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 60 seconds.` );
-                            device.timer = setTimeout(connect, 60000, device);
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in ${slow / 1000} seconds.` );
+                            device.timer = setTimeout(connect, slow, device);
                             break;
                     }
 

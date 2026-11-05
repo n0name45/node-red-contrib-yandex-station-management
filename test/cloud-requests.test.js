@@ -183,3 +183,21 @@ test('only one token request per station at a time', async () => {
     await f.advance(1e3);
     assert.equal(f.sockets.length, 1);
 });
+
+test('reconnects to a silent station back off to 5 minutes', async () => {
+    const f = fixture();
+    f.station.silent = true;
+    f.login();
+    // the 10 s watchdog closes every socket the station never answers on
+    await f.advance(30 * 60e3);
+    assert.ok(f.count('token') <= 13, `${f.count('token')} tokens in 30 minutes`);
+    // once the station talks again, the next drop is redialled at once
+    f.station.silent = false;
+    await f.advance(10 * 60e3);
+    const live = f.sockets.at(-1);
+    assert.equal(live.readyState, 1);
+    live.close(1000);
+    await f.advance(1e3);
+    assert.equal(f.sockets.at(-1).readyState, 1);
+    assert.notEqual(f.sockets.at(-1), live);
+});
