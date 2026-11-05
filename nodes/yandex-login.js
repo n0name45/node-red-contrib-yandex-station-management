@@ -94,7 +94,10 @@ module.exports = function(RED) {
                 });
                 return node.deviceList;
             } */
-            await rp(options)
+            //облачный список нужен один раз: deviceList ниже заполняется только из первого
+            //ответа, а следующие выбрасывались. Дальше тик проигрывает сохранённый список без
+            //запроса: буфер регистрации, mDNS, события ready
+            await (node.deviceList.length ? Promise.resolve('{}') : rp(options))
             .then(function(response)
             {
                 let data = JSON.parse(response);
@@ -134,7 +137,7 @@ module.exports = function(RED) {
             })
             .catch(function (err) {
                 //node.emit('refreshHttp', node.readyList);
-                debugMessage(err);
+                debugMessage('device_list: ' + err);
                 //console.log(JSON.stringify(err))
                 if (err.statusCode == 403) {
                     node.error('Bad oAuth token');
