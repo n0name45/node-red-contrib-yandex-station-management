@@ -149,3 +149,37 @@ test('device_list is requested only until the first answer', async () => {
     assert.ok(f.discoveries() >= 9);
     assert.equal(f.sockets.filter(socket => socket.readyState === 1).length, 1);
 });
+
+test('a failed token request does not dial the station or poll the cloud again', async () => {
+    const f = fixture();
+    let calls = 0;
+    const token = f.cloud.token;
+    f.cloud.token = () => (++calls === 1 ? Promise.reject(limited()) : token());
+    f.login();
+    await f.advance(1e3);
+    assert.equal(f.count('token'), 1);
+    assert.equal(f.sockets.length, 0);
+    assert.equal(f.count('device_list'), 1);
+    // the next tick announces the station again and it connects with a fresh token
+    await f.advance(60e3);
+    assert.equal(f.count('token'), 2);
+    assert.equal(f.sockets.length, 1);
+});
+
+test('only one token request per station at a time', async () => {
+    const f = fixture();
+    let release;
+    f.cloud.token = () => new Promise(resolve => {
+        release = () => resolve(JSON.stringify({ token: 'conversation-token' }));
+    });
+    const login = f.login();
+    await f.advance(1e3);
+    const device = login.deviceList[0];
+    login.emit('deviceReady', device);
+    login.emit('deviceReady', device);
+    await f.advance(1e3);
+    assert.equal(f.count('token'), 1);
+    release();
+    await f.advance(1e3);
+    assert.equal(f.sockets.length, 1);
+});

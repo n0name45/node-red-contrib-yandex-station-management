@@ -205,19 +205,24 @@ module.exports = function(RED) {
                 };
             //   debugMessage(JSON.stringify(options))
             statusUpdate({"color": "yellow", "text": "connecting..."}, device);
-            await rp(options)
+            //возвращает true или false и не бросает. При ошибке станция уходит из readyList,
+            //и следующий тик getDevices объявит её снова. Раньше тут сразу шёл запрос в облако,
+            //а makeConn всё равно звонил станции со старым токеном
+            device.tokenPending = true;
+            return rp(options)
             .then(function(response)
             {
                 data = JSON.parse(response);
                 device.token = data.token;
                 debugMessage(`${device.id}: Recieved conversation new token`)
+                return true;
             })
             .catch(function (err) {
                 removeDevice(node.readyList, device);
                 debugMessage(`Error while getting conversation token. Check your internet connection. Error text: `+ err);
-                getDevices(node.token);
-                return;
-            });
+                return false;
+            })
+            .finally(() => { device.tokenPending = false; });
         };
 
         function statusUpdate(status, device){
@@ -236,10 +241,13 @@ module.exports = function(RED) {
             //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
             if ( (device.connection == true || typeof(device.connection) == "undefined") && node.listenerCount(`statusUpdate_${device.id}`) > 0 ) {
                 debugMessage(`Connecting to device ${device.id}. ws is ${device.ws}. Listeners: ` + node.listenerCount(`statusUpdate_${device.id}`));
+                //один запрос токена на станцию: тик, close и registerDevice могут прийти, пока он в пути
+                if (device.tokenPending) { return debugMessage(`${device.id}: token request in flight`); }
                 if (!device.ws) {
                     debugMessage('recieving conversation token...');
                     getLocalToken(device)
-                    .then(() => {
+                    .then((ok) => {
+                        if (!ok) { return; }
                         if (device.address && device.port) {
                             makeConn(device)
                         } else {
@@ -257,7 +265,8 @@ module.exports = function(RED) {
                         try {
                             if (device.address && device.port) {
                                 getLocalToken(device)
-                                .then(() => {
+                                .then((ok) => {
+                                    if (!ok) { return; }
                                     if (device.address && device.port) {
                                         makeConn(device)
                                     } else {
