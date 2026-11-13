@@ -37,7 +37,13 @@ module.exports = function(RED) {
         }
         node.onMessage = function(data){
             //debugMessage(JSON.stringify(data));
-            sendMessage(stationHelper.preparePayload(node, data));
+            const message = stationHelper.preparePayload(node, data);
+            //Кто источник события: имя станции (из deviceList login-ноды) и имя этой IN-ноды
+            const device = (node.controller && node.controller.deviceList)
+                ? node.controller.deviceList.find(d => d.id === node.station) : undefined;
+            message.station = device ? device.name : node.station;
+            message._node = node.name || node.id;
+            sendMessage(message);
         }
         node.onStatus = function(data) {
             if (data) {
