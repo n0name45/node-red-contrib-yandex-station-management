@@ -94,7 +94,10 @@ module.exports = function(RED) {
                 });
                 return node.deviceList;
             } */
-            await rp(options)
+            //облачный список нужен один раз: deviceList ниже заполняется только из первого
+            //ответа, а следующие выбрасывались. Дальше тик проигрывает сохранённый список без
+            //запроса: буфер регистрации, mDNS, события ready
+            await (node.deviceList.length ? Promise.resolve('{}') : rp(options))
             .then(function(response)
             {
                 let data = JSON.parse(response);
@@ -134,7 +137,7 @@ module.exports = function(RED) {
             })
             .catch(function (err) {
                 //node.emit('refreshHttp', node.readyList);
-                debugMessage(err);
+                debugMessage('device_list: ' + err);
                 //console.log(JSON.stringify(err))
                 if (err.statusCode == 403) {
                     node.error('Bad oAuth token');
@@ -202,19 +205,24 @@ module.exports = function(RED) {
                 };
             //   debugMessage(JSON.stringify(options))
             statusUpdate({"color": "yellow", "text": "connecting..."}, device);
-            await rp(options)
+            //возвращает true или false и не бросает. При ошибке станция уходит из readyList,
+            //и следующий тик getDevices объявит её снова. Раньше тут сразу шёл запрос в облако,
+            //а makeConn всё равно звонил станции со старым токеном
+            device.tokenPending = true;
+            return rp(options)
             .then(function(response)
             {
                 data = JSON.parse(response);
                 device.token = data.token;
                 debugMessage(`${device.id}: Recieved conversation new token`)
+                return true;
             })
             .catch(function (err) {
                 removeDevice(node.readyList, device);
                 debugMessage(`Error while getting conversation token. Check your internet connection. Error text: `+ err);
-                getDevices(node.token);
-                return;
-            });
+                return false;
+            })
+            .finally(() => { device.tokenPending = false; });
         };
 
         function statusUpdate(status, device){
@@ -233,10 +241,13 @@ module.exports = function(RED) {
             //debugMessage(`device.ws = ${JSON.stringify(device.ws)}`);
             if ( (device.connection == true || typeof(device.connection) == "undefined") && node.listenerCount(`statusUpdate_${device.id}`) > 0 ) {
                 debugMessage(`Connecting to device ${device.id}. ws is ${device.ws}. Listeners: ` + node.listenerCount(`statusUpdate_${device.id}`));
+                //один запрос токена на станцию: тик, close и registerDevice могут прийти, пока он в пути
+                if (device.tokenPending) { return debugMessage(`${device.id}: token request in flight`); }
                 if (!device.ws) {
                     debugMessage('recieving conversation token...');
                     getLocalToken(device)
-                    .then(() => {
+                    .then((ok) => {
+                        if (!ok) { return; }
                         if (device.address && device.port) {
                             makeConn(device)
                         } else {
@@ -254,7 +265,8 @@ module.exports = function(RED) {
                         try {
                             if (device.address && device.port) {
                                 getLocalToken(device)
-                                .then(() => {
+                                .then((ok) => {
+                                    if (!ok) { return; }
                                     if (device.address && device.port) {
                                         makeConn(device)
                                     } else {
@@ -302,6 +314,7 @@ module.exports = function(RED) {
                 rejectUnauthorized: false
             };
             device.lastState = {};
+            device.heard = false;
             debugMessage(`Connecting to wss://${device.address}:${device.port}`);
             const ws = device.ws = new WebSocket(`wss://${device.address}:${device.port}`, options);
             debugMessage(`${device.id}: Fire connection watchdog for 60 seconds`);
@@ -324,6 +337,8 @@ module.exports = function(RED) {
                 //debugMessage(`readyState: ${device.ws.readyState}`)
             });
             device.ws.on('message', function incoming(data) {
+                device.heard = true;
+                device.silentCloses = 0;
                 //debugMessage(`${device.id}: ${JSON.stringify(data)}`);
                 let dataRecieved = JSON.parse(data);
                 device.lastState = dataRecieved.state;
@@ -367,27 +382,34 @@ module.exports = function(RED) {
                 //debugMessage(`readyState: ${device.ws.readyState}`)
                 device.lastState = {};
                 clearTimeout(device.watchDog);
+                //соединение, на котором станция ничего не сказала, считаем неудачей: каждая
+                //следующая подряд добавляет 30 с перед новой попыткой, максимум 5 минут.
+                //Раньше на 1000/4000/10000 подключались сразу, и молчащая станция стоила
+                //нового токена каждые 10 с (столько ждёт watchDog)
+                if (!device.heard) { device.silentCloses = (device.silentCloses || 0) + 1; }
+                const backoff = 30000 * Math.min(Math.max((device.silentCloses || 0) - 1, 0), 10);
+                const slow = Math.max(60000, backoff);
                     switch(code) {
                         case 4000:  //invalid token
-                            debugMessage(`getting new token...`);
-                            connect(device);
+                            debugMessage(`getting new token in ${backoff / 1000} s...`);
+                            device.timer = setTimeout(connect, backoff, device);
                             break;
                         case 1000:
-                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting...` );
-                            connect(device);
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in ${backoff / 1000} s...` );
+                            device.timer = setTimeout(connect, backoff, device);
                             break;
                         case 1006:
-                            debugMessage(`Lost server, reconnect in 60 seconds...${code} + ${reason}` );
-                            device.timer = setTimeout(connect, 60000, device);
+                            debugMessage(`Lost server, reconnect in ${slow / 1000} seconds...${code} + ${reason}` );
+                            device.timer = setTimeout(connect, slow, device);
                             break;
 
                         case 10000:
                             debugMessage(`Reconnect device reason 10000 ${device.id}`);
-                            connect(device);
+                            device.timer = setTimeout(connect, backoff, device);
                             break;
                         default:
-                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in 60 seconds.` );
-                            device.timer = setTimeout(connect, 60000, device);
+                            debugMessage(`Closed connection code ${code} with reason ${reason}. Reconnecting in ${slow / 1000} seconds.` );
+                            device.timer = setTimeout(connect, slow, device);
                             break;
                     }
 
