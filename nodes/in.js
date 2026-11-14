@@ -24,11 +24,13 @@ module.exports = function(RED) {
 
         function sendMessage(message){
         //debugMessage(JSON.stringify(message));
-            if (node.uniqueFlag && node.output == 'homekit') {
+            // «Unique messages»: не дублируем сообщение, если оно совпало с предыдущим.
+            // Работает в обоих режимах Output (status/homekit) — чекбокс всегда видим в форме
+            if (node.uniqueFlag) {
                 if ((JSON.stringify(node.lastMessage.payload) != JSON.stringify(message.payload))) {
                     node.send(message)
                     node.lastMessage = message
-                    debugMessage(`Sended message to HK: ${JSON.stringify(message)}`);
+                    debugMessage(`Sended message: ${JSON.stringify(message)}`);
 
                 }
             } else {
